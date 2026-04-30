@@ -32,7 +32,9 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
     super.initState();
     final task = widget.initialTask;
     _nameController = TextEditingController(text: task?.name ?? '');
-    _pathController = TextEditingController(text: task?.referenceImagePath ?? '');
+    _pathController = TextEditingController(
+      text: task?.referenceImagePath ?? '',
+    );
     _selectedAction = task?.profile.standardAction ?? 'CLICK';
   }
 
@@ -48,7 +50,12 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomPadding, left: 16, right: 16, top: 16),
+      padding: EdgeInsets.only(
+        bottom: bottomPadding,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -66,10 +73,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
               onActionChanged: (val) => setState(() => _selectedAction = val!),
             ),
             const SizedBox(height: 24),
-            _ActionButtons(
-              onTry: _handleTry,
-              onSave: _handleSave,
-            ),
+            _ActionButtons(onTry: _handleTry, onSave: _handleSave),
             const SizedBox(height: 16),
           ],
         ),
@@ -94,15 +98,15 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
     final task = _buildTask();
     final result = await context.read<TaskProvider>().runTask(task);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Done')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result['message'] ?? 'Done')));
     }
   }
 
   Future<void> _handleSave() async {
     final task = _buildTask();
-    
+
     String finalImagePath = task.referenceImagePath;
     if (finalImagePath.isNotEmpty) {
       final sourceFile = File(finalImagePath);
@@ -112,16 +116,17 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
         if (!await imagesDir.exists()) {
           await imagesDir.create(recursive: true);
         }
-        
+
         if (!finalImagePath.startsWith(imagesDir.path)) {
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.uri.pathSegments.last}';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.uri.pathSegments.last}';
           final targetPath = '${imagesDir.path}/$fileName';
           await sourceFile.copy(targetPath);
           finalImagePath = targetPath;
         }
       }
     }
-    
+
     final finalTask = TaskCommand(
       name: task.name,
       referenceImagePath: finalImagePath,
@@ -129,7 +134,10 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
     );
 
     if (mounted) {
-      await context.read<TaskProvider>().saveCommand(finalTask, oldCommand: widget.initialTask);
+      await context.read<TaskProvider>().saveCommand(
+        finalTask,
+        oldCommand: widget.initialTask,
+      );
       if (mounted) {
         Navigator.pop(context);
       }
@@ -166,7 +174,10 @@ class _TaskFormFields extends StatelessWidget {
           value: selectedAction,
           items: const [
             DropdownMenuItem(value: 'CLICK', child: Text('CLICK')),
-            DropdownMenuItem(value: 'DOUBLE_CLICK', child: Text('DOUBLE_CLICK')),
+            DropdownMenuItem(
+              value: 'DOUBLE_CLICK',
+              child: Text('DOUBLE_CLICK'),
+            ),
             DropdownMenuItem(value: 'RIGHT_CLICK', child: Text('RIGHT_CLICK')),
             DropdownMenuItem(value: 'HOVER', child: Text('HOVER')),
           ],

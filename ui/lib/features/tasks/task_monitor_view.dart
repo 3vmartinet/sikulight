@@ -108,16 +108,20 @@ class _PersistedCommandsList extends StatelessWidget {
             context.read<TaskProvider>().deleteCommand(command);
           },
           child: ListTile(
-            leading: SizedBox(
-              width: 48,
-              height: 48,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Image.file(
-                  File(command.referenceImagePath),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.image_not_supported),
+            leading: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.file(
+                    File(command.referenceImagePath),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.image_not_supported),
+                  ),
                 ),
               ),
             ),

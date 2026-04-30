@@ -31,23 +31,27 @@ class TaskProvider extends ChangeNotifier {
   }
 
   Future<void> saveCommand(TaskCommand command, {TaskCommand? oldCommand}) async {
+    final newList = List<TaskCommand>.from(_persistedCommands);
     if (oldCommand != null) {
-      final index = _persistedCommands.indexOf(oldCommand);
+      final index = newList.indexOf(oldCommand);
       if (index != -1) {
-        _persistedCommands[index] = command;
+        newList[index] = command;
       } else {
-        if (!_persistedCommands.contains(command)) _persistedCommands.add(command);
+        if (!newList.contains(command)) newList.add(command);
       }
     } else {
-      if (!_persistedCommands.contains(command)) {
-        _persistedCommands.add(command);
+      if (!newList.contains(command)) {
+        newList.add(command);
       }
     }
+    _persistedCommands = newList;
     await _persistCommands();
   }
 
   Future<void> deleteCommand(TaskCommand command) async {
-    _persistedCommands.remove(command);
+    final newList = List<TaskCommand>.from(_persistedCommands);
+    newList.remove(command);
+    _persistedCommands = newList;
     await _persistCommands();
   }
 
