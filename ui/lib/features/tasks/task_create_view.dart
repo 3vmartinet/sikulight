@@ -1,18 +1,40 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/features/tasks/task_provider.dart';
+import 'package:ui/features/tasks/task_command.dart';
 
-class TaskCreateView extends StatefulWidget {
-  const TaskCreateView({super.key});
+class TaskCreateSheet extends StatefulWidget {
+  final TaskCommand? initialTask;
+
+  const TaskCreateSheet({super.key, this.initialTask});
+
+  static Future<void> show(BuildContext context, {TaskCommand? task}) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => TaskCreateSheet(initialTask: task),
+    );
+  }
 
   @override
-  State<TaskCreateView> createState() => _TaskCreateViewState();
+  State<TaskCreateSheet> createState() => _TaskCreateSheetState();
 }
 
-class _TaskCreateViewState extends State<TaskCreateView> {
-  final _nameController = TextEditingController();
-  final _pathController = TextEditingController();
-  String _selectedAction = 'CLICK';
+class _TaskCreateSheetState extends State<TaskCreateSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _pathController;
+  late String _selectedAction;
+
+  @override
+  void initState() {
+    super.initState();
+    final task = widget.initialTask;
+    _nameController = TextEditingController(text: task?.name ?? '');
+    _pathController = TextEditingController(text: task?.referenceImagePath ?? '');
+    _selectedAction = task?.profile.standardAction ?? 'CLICK';
+  }
 
   @override
   void dispose() {
@@ -23,45 +45,94 @@ class _TaskCreateViewState extends State<TaskCreateView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Task')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomPadding, left: 16, right: 16, top: 16),
+      child: SafeArea(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              widget.initialTask == null ? 'Create Task' : 'Edit Task',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
             _TaskFormFields(
               nameController: _nameController,
               pathController: _pathController,
               selectedAction: _selectedAction,
               onActionChanged: (val) => setState(() => _selectedAction = val!),
             ),
-            const SizedBox(height: 20),
-            _SubmitButton(
-              onPressed: _handleSubmit,
+            const SizedBox(height: 24),
+            _ActionButtons(
+              onTry: _handleTry,
+              onSave: _handleSave,
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _handleSubmit() async {
-    final task = {
-      'name': _nameController.text,
-      'reference_image_path': _pathController.text,
-      'profile': {
-        'mode': 'STANDARD',
-        'standard_action': _selectedAction,
-        'confidence_threshold': 0.8,
-        'timeout_seconds': 30,
-      }
-    };
-    
+  TaskCommand _buildTask() {
+    return TaskCommand(
+      name: _nameController.text,
+      referenceImagePath: _pathController.text,
+      profile: TaskProfile(
+        mode: 'STANDARD',
+        standardAction: _selectedAction,
+        confidenceThreshold: 0.8,
+        timeoutSeconds: 30,
+      ),
+    );
+  }
+
+  Future<void> _handleTry() async {
+    final task = _buildTask();
     final result = await context.read<TaskProvider>().runTask(task);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'] ?? 'Done')),
       );
+    }
+  }
+
+  Future<void> _handleSave() async {
+    final task = _buildTask();
+    
+    String finalImagePath = task.referenceImagePath;
+    if (finalImagePath.isNotEmpty) {
+      final sourceFile = File(finalImagePath);
+      if (await sourceFile.exists()) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final imagesDir = Directory('${appDir.path}/sikulight_images');
+        if (!await imagesDir.exists()) {
+          await imagesDir.create(recursive: true);
+        }
+        
+        if (!finalImagePath.startsWith(imagesDir.path)) {
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.uri.pathSegments.last}';
+          final targetPath = '${imagesDir.path}/$fileName';
+          await sourceFile.copy(targetPath);
+          finalImagePath = targetPath;
+        }
+      }
+    }
+    
+    final finalTask = TaskCommand(
+      name: task.name,
+      referenceImagePath: finalImagePath,
+      profile: task.profile,
+    );
+
+    if (mounted) {
+      await context.read<TaskProvider>().saveCommand(finalTask, oldCommand: widget.initialTask);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 }
@@ -107,24 +178,29 @@ class _TaskFormFields extends StatelessWidget {
   }
 }
 
-class _SubmitButton extends StatelessWidget {
-  final VoidCallback onPressed;
+class _ActionButtons extends StatelessWidget {
+  final VoidCallback onTry;
+  final VoidCallback onSave;
 
-  const _SubmitButton({required this.onPressed});
+  const _ActionButtons({required this.onTry, required this.onSave});
 
   @override
   Widget build(BuildContext context) {
     final isBusy = context.select<TaskProvider, bool>((p) => p.isBusy);
 
-    return ElevatedButton(
-      onPressed: isBusy ? null : onPressed,
-      child: isBusy
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Text('Run Task'),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        OutlinedButton(
+          onPressed: isBusy ? null : onTry,
+          child: const Text('Try'),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: isBusy ? null : onSave,
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

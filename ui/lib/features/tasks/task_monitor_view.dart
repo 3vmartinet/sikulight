@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/features/tasks/task_provider.dart';
 import 'package:ui/features/tasks/task_create_view.dart';
+import 'package:ui/features/tasks/task_command.dart';
 
 class TaskMonitorView extends StatelessWidget {
   const TaskMonitorView({super.key});
@@ -11,9 +13,21 @@ class TaskMonitorView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SikuLight Dashboard'),
-        actions: const [_RefreshButton()],
+        actions: [
+          const _RefreshButton(),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => TaskCreateSheet.show(context),
+          ),
+        ],
       ),
-      body: const Center(child: _StatusDisplay()),
+      body: const Row(
+        children: [
+          Expanded(flex: 1, child: _PersistedCommandsList()),
+          VerticalDivider(width: 1),
+          Expanded(flex: 2, child: _StatusDisplay()),
+        ],
+      ),
     );
   }
 }
@@ -43,7 +57,7 @@ class _StatusDisplay extends StatelessWidget {
     );
 
     if (status == null) {
-      return const Text('Loading engine status...');
+      return const Center(child: Text('Loading engine status...'));
     }
 
     return Column(
@@ -59,24 +73,64 @@ class _StatusDisplay extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         const SizedBox(height: 20),
-        const _NavigateToCreateButton(),
         if (isBusy) const _AbortButton(),
       ],
     );
   }
 }
 
-class _NavigateToCreateButton extends StatelessWidget {
-  const _NavigateToCreateButton();
+class _PersistedCommandsList extends StatelessWidget {
+  const _PersistedCommandsList();
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const TaskCreateView()),
-      ),
-      child: const Text('Add/Run New Task'),
+    final commands = context.select<TaskProvider, List<TaskCommand>>(
+      (provider) => provider.persistedCommands,
+    );
+
+    return ListView.builder(
+      itemCount: commands.length,
+      itemBuilder: (context, index) {
+        final command = commands[index];
+        return Dismissible(
+          key: ValueKey(command),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            color: Theme.of(context).colorScheme.error,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 16),
+            child: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.onError,
+            ),
+          ),
+          onDismissed: (_) {
+            context.read<TaskProvider>().deleteCommand(command);
+          },
+          child: ListTile(
+            leading: SizedBox(
+              width: 48,
+              height: 48,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.file(
+                  File(command.referenceImagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.image_not_supported),
+                ),
+              ),
+            ),
+            title: Text(command.name),
+            subtitle: Text(command.profile.standardAction),
+            trailing: IconButton(
+              icon: const Icon(Icons.play_arrow),
+              onPressed: () => context.read<TaskProvider>().runTask(command),
+            ),
+            onTap: () => TaskCreateSheet.show(context, task: command),
+          ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:ui/features/tasks/task_command.dart';
 
 class ApiClient {
   final String baseUrl;
@@ -17,11 +18,11 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> executeTask(Map<String, dynamic> task) async {
+  Future<Map<String, dynamic>> executeTask(TaskCommand task) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/execute'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(task),
+      body: jsonEncode(task.toJson()),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
