@@ -13,6 +13,8 @@ class StandardAction(str, Enum):
     DOUBLE_CLICK = "DOUBLE_CLICK"
     RIGHT_CLICK = "RIGHT_CLICK"
     HOVER = "HOVER"
+    MIDDLE_CLICK = "MIDDLE_CLICK"
+    SCROLL = "SCROLL"
 
 class InteractionProfile(BaseModel):
     mode: InteractionMode
@@ -20,6 +22,9 @@ class InteractionProfile(BaseModel):
     delegated_command_path: Optional[str] = None
     confidence_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
     timeout_seconds: int = Field(default=30, gt=0)
+    x: Optional[int] = None
+    y: Optional[int] = None
+    scroll_magnitude: Optional[int] = None
 
 class AutomationTask(BaseModel):
     id: UUID = Field(default_factory=uuid4)

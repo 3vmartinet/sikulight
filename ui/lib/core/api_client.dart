@@ -7,7 +7,7 @@ class ApiClient {
   final http.Client _client;
 
   ApiClient({this.baseUrl = 'http://127.0.0.1:8000', http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   Future<Map<String, dynamic>> getStatus() async {
     final response = await _client.get(Uri.parse('$baseUrl/status'));
@@ -37,6 +37,15 @@ class ApiClient {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
       throw Exception('Failed to abort task');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCursorPosition() async {
+    final response = await _client.get(Uri.parse('$baseUrl/cursor-position'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to get cursor position');
     }
   }
 }

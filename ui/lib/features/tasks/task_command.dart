@@ -6,11 +6,18 @@ class TaskProfile extends Equatable {
   final double confidenceThreshold;
   final int timeoutSeconds;
 
+  final int? scrollMagnitude;
+  final int? x;
+  final int? y;
+
   const TaskProfile({
     required this.mode,
     required this.standardAction,
     required this.confidenceThreshold,
     required this.timeoutSeconds,
+    this.scrollMagnitude,
+    this.x,
+    this.y,
   });
 
   factory TaskProfile.fromJson(Map<String, dynamic> json) {
@@ -19,6 +26,9 @@ class TaskProfile extends Equatable {
       standardAction: json['standard_action'] as String,
       confidenceThreshold: (json['confidence_threshold'] as num).toDouble(),
       timeoutSeconds: json['timeout_seconds'] as int,
+      scrollMagnitude: json['scroll_magnitude'] as int?,
+      x: json['x'] as int?,
+      y: json['y'] as int?,
     );
   }
 
@@ -28,6 +38,9 @@ class TaskProfile extends Equatable {
       'standard_action': standardAction,
       'confidence_threshold': confidenceThreshold,
       'timeout_seconds': timeoutSeconds,
+      if (scrollMagnitude != null) 'scroll_magnitude': scrollMagnitude,
+      if (x != null) 'x': x,
+      if (y != null) 'y': y,
     };
   }
 
@@ -37,6 +50,9 @@ class TaskProfile extends Equatable {
     standardAction,
     confidenceThreshold,
     timeoutSeconds,
+    scrollMagnitude,
+    x,
+    y,
   ];
 }
 
