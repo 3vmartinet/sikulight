@@ -12,7 +12,7 @@ class TaskMonitorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SikuLight Dashboard'),
+        title: const Text('Dashboard'),
         actions: [
           const _RefreshButton(),
           IconButton(

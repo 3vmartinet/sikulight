@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/features/tasks/task_provider.dart';
 import 'package:ui/features/tasks/task_command.dart';
@@ -170,10 +172,36 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
 
   Future<void> _handleSave() async {
     final task = _buildTask();
-    // ... file saving logic ...
+
+    String finalImagePath = task.referenceImagePath;
+    if (finalImagePath.isNotEmpty) {
+      final sourceFile = File(finalImagePath);
+      if (await sourceFile.exists()) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final imagesDir = Directory('${appDir.path}/sikulight_images');
+        if (!await imagesDir.exists()) {
+          await imagesDir.create(recursive: true);
+        }
+
+        if (!finalImagePath.startsWith(imagesDir.path)) {
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.uri.pathSegments.last}';
+          final targetPath = '${imagesDir.path}/$fileName';
+          await sourceFile.copy(targetPath);
+          finalImagePath = targetPath;
+        }
+      }
+    }
+
+    final finalTask = TaskCommand(
+      name: task.name,
+      referenceImagePath: finalImagePath,
+      profile: task.profile,
+    );
+
     if (mounted) {
       await context.read<TaskProvider>().saveCommand(
-        task,
+        finalTask,
         oldCommand: widget.initialTask,
       );
       Navigator.pop(context);
@@ -228,7 +256,7 @@ class _TaskFormFieldsState extends State<_TaskFormFields> {
             ),
           ),
         DropdownButtonFormField<String>(
-          value: widget.selectedAction,
+          initialValue: widget.selectedAction,
           items: const [
             DropdownMenuItem(value: 'CLICK', child: Text('CLICK')),
             DropdownMenuItem(
