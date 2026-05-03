@@ -1,11 +1,6 @@
-include:
-  - lib/**.dart
-  - test/**.dart
+include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
   errors:
     todo: ignore
     missing_required_param: error
@@ -23,10 +18,7 @@ linter:
     - empty_statements
     - hash_and_equals
     - implementation_imports
-    - iterable_contains_unrelated_type
-    - list_remove_unrelated_type
     - non_constant_identifier_names
-    - package_api_docs
     - package_names
     - package_prefixed_library_names
     - prefer_final_fields

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ui/core/api_client.dart';
 import 'package:ui/features/tasks/task_command.dart';
+import 'package:ui/features/workflow/models/execution_result.dart';
 import 'dart:convert';
 
 class TaskProvider extends ChangeNotifier {
@@ -73,7 +74,7 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> runTask(TaskCommand task) async {
+  Future<ExecutionResult> runTask(TaskCommand task) async {
     _isBusy = true;
     notifyListeners();
 

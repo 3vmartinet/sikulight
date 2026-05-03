@@ -63,23 +63,67 @@ async def execute_task(task: AutomationTask):
                 elif task.profile.standard_action == StandardAction.SCROLL:
                     simulate_hover(task.profile.x or 0, task.profile.y or 0)
                     simulate_scroll(task.profile.scroll_magnitude or 10)
+                
+                execution_details = {
+                    "mode": "standard",
+                    "exit_code": 0,
+                    "stdout": "",
+                    "stderr": ""
+                }
             elif task.profile.mode == InteractionMode.DELEGATED:
                 if not task.profile.delegated_command_path:
                     raise ValueError("Delegated command path is required for DELEGATED mode")
 
-                execute_delegated_command(task.profile.delegated_command_path, SCRIPTS_DIR)
+                stdout = execute_delegated_command(task.profile.delegated_command_path, SCRIPTS_DIR)
+                execution_details = {
+                    "mode": "delegated",
+                    "exit_code": 0, # execute_delegated_command raises exception if non-zero
+                    "stdout": stdout,
+                    "stderr": ""
+                }
 
             # Restore mouse position
             pyautogui.moveTo(original_x, original_y)
 
             engine_status.status = EngineStatus.IDLE
             engine_status.current_task_id = None
-            return {"success": True, "message": "Task executed", "coordinates": [x, y]}
+            return {
+                "success": True, 
+                "message": "Task executed", 
+                "coordinates": [x, y],
+                "execution_details": execution_details
+            }
         else:
             engine_status.status = EngineStatus.IDLE
             engine_status.current_task_id = None
             # Restore even if not found? User didn't specify, but safe to restore.
             pyautogui.moveTo(original_x, original_y)
+            return {"success": False, "message": "Element not found", "execution_details": None}
+            
+    except Exception as e:
+        engine_status.status = EngineStatus.ERROR
+        engine_status.last_error = str(e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/check")
+async def check_element(task: AutomationTask):
+    """
+    Check if an element exists on screen without performing any action.
+    """
+    try:
+        engine_status.status = EngineStatus.RUNNING
+        engine_status.current_task_id = task.id
+        
+        # Take screenshot and find element
+        screenshot = capture_screen()
+        x, y = find_element(screenshot, task.reference_image_path, task.profile.confidence_threshold)
+        
+        engine_status.status = EngineStatus.IDLE
+        engine_status.current_task_id = None
+        
+        if x is not None and y is not None:
+            return {"success": True, "message": "Element found", "coordinates": [x, y]}
+        else:
             return {"success": False, "message": "Element not found"}
             
     except Exception as e:

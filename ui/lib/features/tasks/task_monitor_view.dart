@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:ui/features/tasks/task_provider.dart';
 import 'package:ui/features/tasks/task_create_view.dart';
 import 'package:ui/features/tasks/task_command.dart';
+import 'package:ui/features/workflow/workflow_screen.dart';
 
 class TaskMonitorView extends StatelessWidget {
   const TaskMonitorView({super.key});
@@ -14,6 +15,10 @@ class TaskMonitorView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.account_tree),
+            onPressed: () => WorkflowScreen.show(context),
+          ),
           const _RefreshButton(),
           IconButton(
             icon: const Icon(Icons.add),

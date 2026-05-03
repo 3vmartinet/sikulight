@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ui/features/tasks/task_command.dart';
+import 'package:ui/features/workflow/models/execution_result.dart';
 
 class ApiClient {
   final String baseUrl;
@@ -18,16 +19,29 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> executeTask(TaskCommand task) async {
+  Future<ExecutionResult> executeTask(TaskCommand task) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/execute'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(task.toJson()),
     );
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      return ExecutionResult.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     } else {
       throw Exception('Failed to execute task: ${response.body}');
+    }
+  }
+
+  Future<ExecutionResult> checkTask(TaskCommand task) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/check'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(task.toJson()),
+    );
+    if (response.statusCode == 200) {
+      return ExecutionResult.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    } else {
+      throw Exception('Failed to check task: ${response.body}');
     }
   }
 

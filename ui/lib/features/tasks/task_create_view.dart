@@ -59,7 +59,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
   }
 
   void _startContinuousCapture() {
-    Map<String, int>? _lastPos;
+    Map<String, int>? lastPos;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (mounted && !_isCaptured && _selectedAction == 'SCROLL') {
         try {
@@ -67,12 +67,12 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
           if (mounted && !_isCaptured) {
             final x = pos['x'] as int;
             final y = pos['y'] as int;
-            if (_lastPos == null ||
-                _lastPos!['x'] != x ||
-                _lastPos!['y'] != y) {
+            if (lastPos == null ||
+                lastPos!['x'] != x ||
+                lastPos!['y'] != y) {
               _xController.text = x.toString();
               _yController.text = y.toString();
-              _lastPos = {'x': x, 'y': y};
+              lastPos = {'x': x, 'y': y};
             }
           }
         } catch (_) {}
@@ -164,10 +164,11 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
   Future<void> _handleTry() async {
     final task = _buildTask();
     final result = await context.read<TaskProvider>().runTask(task);
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(result['message'] ?? 'Done')));
+      ).showSnackBar(SnackBar(content: Text(result.message)));
+    }
   }
 
   Future<void> _handleSave() async {
@@ -204,7 +205,9 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
         finalTask,
         oldCommand: widget.initialTask,
       );
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 }

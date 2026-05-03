@@ -1,3 +1,3 @@
 <!-- SPECKIT START -->
-- Current Plan: `specs/004-flutter-mouse-ui-integration/plan.md`
+- Current Plan: `specs/005-visual-workflow-builder/plan.md`
 <!-- SPECKIT END -->
