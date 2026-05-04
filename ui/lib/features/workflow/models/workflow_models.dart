@@ -6,10 +6,9 @@ sealed class NodeData extends Equatable {
   final String id;
   final Offset position;
 
-  const NodeData({
-    required this.id,
-    required this.position,
-  });
+  const NodeData({required this.id, required this.position});
+
+  NodeData copyWith({Offset? position});
 
   String get type;
 
@@ -43,7 +42,9 @@ sealed class NodeData extends Equatable {
         return VdaActionNode(
           id: id,
           position: position,
-          command: TaskCommand.fromJson(json['command'] as Map<String, dynamic>),
+          command: TaskCommand.fromJson(
+            json['command'] as Map<String, dynamic>,
+          ),
           timeoutOverride: json['timeoutOverride'] as int?,
         );
       case 'visual_check':
@@ -58,7 +59,9 @@ sealed class NodeData extends Equatable {
         return BranchNode(
           id: id,
           position: position,
-          conditionType: ConditionType.values.byName(json['conditionType'] as String),
+          conditionType: ConditionType.values.byName(
+            json['conditionType'] as String,
+          ),
           outcomes: (json['outcomes'] as List<dynamic>).cast<String>(),
         );
       case 'loop':
@@ -73,7 +76,9 @@ sealed class NodeData extends Equatable {
           id: id,
           position: position,
           variableName: json['variableName'] as String,
-          operation: VariableOperation.values.byName(json['operation'] as String),
+          operation: VariableOperation.values.byName(
+            json['operation'] as String,
+          ),
           value: json['value'],
         );
       case 'wait':
@@ -92,6 +97,10 @@ class StartNode extends NodeData {
   const StartNode({required super.id, required super.position});
 
   @override
+  NodeData copyWith({Offset? position}) =>
+      StartNode(id: id, position: position ?? this.position);
+
+  @override
   String get type => 'start';
 
   @override
@@ -100,6 +109,10 @@ class StartNode extends NodeData {
 
 class EndNode extends NodeData {
   const EndNode({required super.id, required super.position});
+
+  @override
+  NodeData copyWith({Offset? position}) =>
+      EndNode(id: id, position: position ?? this.position);
 
   @override
   String get type => 'end';
@@ -118,6 +131,14 @@ class VdaActionNode extends NodeData {
     required this.command,
     this.timeoutOverride,
   });
+
+  @override
+  NodeData copyWith({Offset? position}) => VdaActionNode(
+    id: id,
+    position: position ?? this.position,
+    command: command,
+    timeoutOverride: timeoutOverride,
+  );
 
   @override
   String get type => 'vda_action';
@@ -146,6 +167,15 @@ class VisualCheckNode extends NodeData {
   });
 
   @override
+  NodeData copyWith({Offset? position}) => VisualCheckNode(
+    id: id,
+    position: position ?? this.position,
+    referenceImagePath: referenceImagePath,
+    confidenceThreshold: confidenceThreshold,
+    timeoutSeconds: timeoutSeconds,
+  );
+
+  @override
   String get type => 'visual_check';
 
   @override
@@ -156,7 +186,12 @@ class VisualCheckNode extends NodeData {
   };
 
   @override
-  List<Object?> get props => [...super.props, referenceImagePath, confidenceThreshold, timeoutSeconds];
+  List<Object?> get props => [
+    ...super.props,
+    referenceImagePath,
+    confidenceThreshold,
+    timeoutSeconds,
+  ];
 }
 
 enum ConditionType { visualSuccess, variableMatch, fileExists, scriptExitCode }
@@ -171,6 +206,14 @@ class BranchNode extends NodeData {
     required this.conditionType,
     required this.outcomes,
   });
+
+  @override
+  NodeData copyWith({Offset? position}) => BranchNode(
+    id: id,
+    position: position ?? this.position,
+    conditionType: conditionType,
+    outcomes: outcomes,
+  );
 
   @override
   String get type => 'branch';
@@ -197,6 +240,14 @@ class LoopNode extends NodeData {
     required this.loopType,
     this.maxIterations = 100,
   });
+
+  @override
+  NodeData copyWith({Offset? position}) => LoopNode(
+    id: id,
+    position: position ?? this.position,
+    loopType: loopType,
+    maxIterations: maxIterations,
+  );
 
   @override
   String get type => 'loop';
@@ -227,6 +278,15 @@ class VariableNode extends NodeData {
   });
 
   @override
+  NodeData copyWith({Offset? position}) => VariableNode(
+    id: id,
+    position: position ?? this.position,
+    variableName: variableName,
+    operation: operation,
+    value: value,
+  );
+
+  @override
   String get type => 'variable_set';
 
   @override
@@ -250,12 +310,17 @@ class WaitNode extends NodeData {
   });
 
   @override
+  NodeData copyWith({Offset? position}) => WaitNode(
+    id: id,
+    position: position ?? this.position,
+    durationSeconds: durationSeconds,
+  );
+
+  @override
   String get type => 'wait';
 
   @override
-  Map<String, dynamic> extraToJson() => {
-    'durationSeconds': durationSeconds,
-  };
+  Map<String, dynamic> extraToJson() => {'durationSeconds': durationSeconds};
 
   @override
   List<Object?> get props => [...super.props, durationSeconds];
@@ -275,7 +340,12 @@ class ConnectionData extends Equatable {
   });
 
   @override
-  List<Object?> get props => [sourceNodeId, sourcePortId, targetNodeId, targetPortId];
+  List<Object?> get props => [
+    sourceNodeId,
+    sourcePortId,
+    targetNodeId,
+    targetPortId,
+  ];
 
   Map<String, dynamic> toJson() => {
     'sourceNodeId': sourceNodeId,

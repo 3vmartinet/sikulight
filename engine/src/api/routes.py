@@ -16,6 +16,7 @@ from engine.src.core.recognition import find_template
 from engine.src.core.input import simulate_click, simulate_hover, simulate_scroll, get_cursor_position
 from engine.src.core.overlay import show_highlight
 from engine.src.core.executor import execute_delegated_command
+from engine.src.core.window import hide_vda_application, show_vda_application
 from engine.src.models.task import InteractionMode, StandardAction
 import pyautogui
 import asyncio
@@ -137,10 +138,15 @@ async def abort_task():
     engine_status.current_task_id = None
     return {"success": True, "message": "Task aborted"}
 
-@router.get("/cursor-position")
-async def get_cursor_position_route():
-    x, y = get_cursor_position()
-    return {"x": x, "y": y}
+@router.post("/hide-app")
+async def hide_app():
+    hide_vda_application()
+    return {"success": True}
+
+@router.post("/show-app")
+async def show_app():
+    show_vda_application()
+    return {"success": True}
 
 @router.get("/cursor-position")
 async def get_cursor_position_route():

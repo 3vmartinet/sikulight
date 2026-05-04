@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ui/features/workflow/services/workflow_persistence.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/services/workflow_engine.dart';
 
@@ -49,13 +51,71 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.save),
           onPressed: () {
-            // TODO: viewModel.manualSave();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Workflow draft saved.')),
+            );
           },
-          tooltip: 'Save',
+          tooltip: 'Save Draft',
+        ),
+        IconButton(
+          icon: const Icon(Icons.file_download),
+          onPressed: () async {
+            final fileNameController = TextEditingController();
+            final persistence = context.read<WorkflowPersistence>();
+            final result = await showDialog<String>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Import Workflow'),
+                content: TextField(
+                  controller: fileNameController,
+                  decoration: const InputDecoration(hintText: 'Enter filename (e.g., exported_workflow.swflow)'),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, fileNameController.text),
+                    child: const Text('Import'),
+                  ),
+                ],
+              ),
+            );
+
+            if (result != null && result.isNotEmpty) {
+              final dir = await persistence.localDirectory;
+              await viewModel.importWorkflow(File('${dir.path}/$result'));
+            }
+          },
+          tooltip: 'Import',
         ),
         IconButton(
           icon: const Icon(Icons.file_upload),
-          onPressed: viewModel.exportWorkflow,
+          onPressed: () async {
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            final workflowPersistence = context.read<WorkflowPersistence>();
+            
+            await viewModel.exportWorkflow();
+            final dir = await workflowPersistence.localDirectory;
+            
+            scaffoldMessenger.showSnackBar(
+              SnackBar(
+                content: Text('Exported as ${WorkflowPersistence.exportedFileName} to: ${dir.path}'),
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'Open Folder',
+                  onPressed: () async {
+                    if (Platform.isMacOS) {
+                      await Process.run('open', [dir.path]);
+                    } else if (Platform.isLinux) {
+                      await Process.run('xdg-open', [dir.path]);
+                    }
+                  },
+                ),
+              ),
+            );
+          },
           tooltip: 'Export',
         ),
         IconButton(

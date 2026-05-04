@@ -28,6 +28,7 @@ class WorkflowScreen extends StatelessWidget {
             Provider(create: (_) => WorkflowPersistence()),
             ChangeNotifierProvider(
               create: (context) => WorkflowViewModel(
+                apiClient: apiClient,
                 engine: context.read<WorkflowEngine>(),
                 persistence: context.read<WorkflowPersistence>(),
               ),

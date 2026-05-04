@@ -5,15 +5,20 @@ import 'package:ui/features/workflow/models/workflow_models.dart';
 
 class WorkflowPersistence {
   static const String _draftFileName = 'draft_workflow.json';
+  static const String exportedFileName = 'exported_workflow.swflow';
 
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
+  Future<Directory> get localDirectory async {
+    return await getApplicationDocumentsDirectory();
   }
 
   Future<File> get _draftFile async {
-    final path = await _localPath;
-    return File('$path/$_draftFileName');
+    final dir = await localDirectory;
+    return File('${dir.path}/$_draftFileName');
+  }
+
+  Future<File> getExportFile() async {
+    final dir = await localDirectory;
+    return File('${dir.path}/$exportedFileName');
   }
 
   Future<void> saveDraft(Workflow workflow) async {

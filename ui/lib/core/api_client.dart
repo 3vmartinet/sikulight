@@ -62,4 +62,12 @@ class ApiClient {
       throw Exception('Failed to get cursor position');
     }
   }
+
+  Future<void> hideApp() async {
+    await _client.post(Uri.parse('$baseUrl/hide-app'));
+  }
+
+  Future<void> showApp() async {
+    await _client.post(Uri.parse('$baseUrl/show-app'));
+  }
 }

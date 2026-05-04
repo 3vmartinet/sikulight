@@ -70,20 +70,6 @@ class _SystemNodesList extends StatelessWidget {
     return Column(
       children: [
         ListTile(
-          title: const Text('Start Node'),
-          leading: const Icon(Icons.play_arrow, color: Colors.green),
-          onTap: () => viewModel.addNode(
-            StartNode(id: const Uuid().v4(), position: const Offset(50, 50)),
-          ),
-        ),
-        ListTile(
-          title: const Text('End Node'),
-          leading: const Icon(Icons.stop, color: Colors.red),
-          onTap: () => viewModel.addNode(
-            EndNode(id: const Uuid().v4(), position: const Offset(400, 400)),
-          ),
-        ),
-        ListTile(
           title: const Text('Wait Node'),
           leading: const Icon(Icons.timer),
           onTap: () => viewModel.addNode(
