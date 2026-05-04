@@ -22,6 +22,7 @@ class WorkflowViewModel extends ChangeNotifier {
        _persistence = persistence {
          controller = vnf.NodeFlowController<models.NodeData, dynamic>();
          _setupController();
+         addNode(models.StartNode(id: const Uuid().v4(), position: const Offset(100, 100)));
        }
 
   void _setupController() {

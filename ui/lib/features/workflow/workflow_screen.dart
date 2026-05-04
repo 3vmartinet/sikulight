@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/core/api_client.dart';
+import 'package:ui/features/tasks/task_provider.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/services/workflow_engine.dart';
 import 'package:ui/features/workflow/services/workflow_persistence.dart';
@@ -14,10 +15,13 @@ class WorkflowScreen extends StatelessWidget {
 
   static void show(BuildContext context) {
     final apiClient = ApiClient();
+    final taskProvider = context.read<TaskProvider>();
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MultiProvider(
           providers: [
+            ChangeNotifierProvider.value(value: taskProvider),
             ChangeNotifierProvider(
               create: (_) => WorkflowEngine(apiClient: apiClient),
             ),
@@ -29,7 +33,7 @@ class WorkflowScreen extends StatelessWidget {
               ),
             ),
           ],
-          child: const _WorkflowScreenBody(),
+          child: const WorkflowScreen(),
         ),
       ),
     );
@@ -37,9 +41,7 @@ class WorkflowScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Use WorkflowScreen.show(context)')),
-    );
+    return const _WorkflowScreenBody();
   }
 }
 
@@ -55,16 +57,17 @@ class _WorkflowScreenBody extends StatelessWidget {
     final selectedNodeId = selectedNode?.id ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Visual Workflow Builder')),
-      body: Row(
-        children: [
-          const CommandRegistryPanel(),
-          const Expanded(child: WorkflowCanvas()),
-          if (selectedNodeId.isNotEmpty)
-            NodeParameterPanel(nodeId: selectedNodeId),
-        ],
+      appBar: const WorkflowToolbar(),
+      body: SizedBox.expand(
+        child: Row(
+          children: [
+            const CommandRegistryPanel(),
+            const Expanded(child: WorkflowCanvas()),
+            if (selectedNodeId.isNotEmpty)
+              NodeParameterPanel(nodeId: selectedNodeId),
+          ],
+        ),
       ),
-      bottomNavigationBar: const WorkflowToolbar(),
     );
   }
 }

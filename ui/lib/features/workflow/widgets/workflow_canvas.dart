@@ -20,7 +20,7 @@ class WorkflowCanvas extends StatelessWidget {
         final isActive = engine.activeNodeId == node.id;
         final executionCount = engine.nodeExecutionCounts[node.id] ?? 0;
         return _NodeWidget(
-          nodeData: node.data, 
+          nodeData: node.data,
           isActive: isActive,
           executionCount: executionCount,
         );

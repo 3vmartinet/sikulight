@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/services/workflow_engine.dart';
 
-class WorkflowToolbar extends StatelessWidget {
+class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
   const WorkflowToolbar({super.key});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -30,19 +33,23 @@ class WorkflowToolbar extends StatelessWidget {
         const VerticalDivider(),
         IconButton(
           icon: const Icon(Icons.play_arrow, color: Colors.green),
-          onPressed: engine.status == WorkflowStatus.running ? null : viewModel.runWorkflow,
+          onPressed: engine.status == WorkflowStatus.running
+              ? null
+              : viewModel.runWorkflow,
           tooltip: 'Run Workflow',
         ),
         IconButton(
           icon: const Icon(Icons.stop, color: Colors.red),
-          onPressed: engine.status == WorkflowStatus.running ? viewModel.stopWorkflow : null,
+          onPressed: engine.status == WorkflowStatus.running
+              ? viewModel.stopWorkflow
+              : null,
           tooltip: 'Stop Workflow',
         ),
         const VerticalDivider(),
         IconButton(
           icon: const Icon(Icons.save),
           onPressed: () {
-             // TODO: viewModel.manualSave();
+            // TODO: viewModel.manualSave();
           },
           tooltip: 'Save',
         ),
@@ -94,7 +101,7 @@ class _ElapsedTimeDisplayState extends State<_ElapsedTimeDisplay> {
     final elapsedTime = widget.engine.elapsedTime;
     final minutes = elapsedTime.inMinutes.toString().padLeft(2, '0');
     final seconds = (elapsedTime.inSeconds % 60).toString().padLeft(2, '0');
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Center(

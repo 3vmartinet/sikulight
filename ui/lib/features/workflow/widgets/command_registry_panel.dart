@@ -13,12 +13,23 @@ class CommandRegistryPanel extends StatelessWidget {
     final taskProvider = context.watch<TaskProvider>();
     final workflowViewModel = context.read<WorkflowViewModel>();
 
-    return Drawer(
+    return Container(
+      width: 300,
+      decoration: BoxDecoration(
+        color: Theme.of(context).canvasColor,
+        border: Border(
+          right: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
       child: Column(
         children: [
-          AppBar(
-            title: const Text('Commands Registry'),
-            automaticallyImplyLeading: false,
+          Container(
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Commands Registry',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ),
           Expanded(
             child: ListView.builder(
@@ -61,17 +72,27 @@ class _SystemNodesList extends StatelessWidget {
         ListTile(
           title: const Text('Start Node'),
           leading: const Icon(Icons.play_arrow, color: Colors.green),
-          onTap: () => viewModel.addNode(StartNode(id: const Uuid().v4(), position: const Offset(50, 50))),
+          onTap: () => viewModel.addNode(
+            StartNode(id: const Uuid().v4(), position: const Offset(50, 50)),
+          ),
         ),
         ListTile(
           title: const Text('End Node'),
           leading: const Icon(Icons.stop, color: Colors.red),
-          onTap: () => viewModel.addNode(EndNode(id: const Uuid().v4(), position: const Offset(400, 400))),
+          onTap: () => viewModel.addNode(
+            EndNode(id: const Uuid().v4(), position: const Offset(400, 400)),
+          ),
         ),
         ListTile(
           title: const Text('Wait Node'),
           leading: const Icon(Icons.timer),
-          onTap: () => viewModel.addNode(WaitNode(id: const Uuid().v4(), position: const Offset(100, 100), durationSeconds: 5)),
+          onTap: () => viewModel.addNode(
+            WaitNode(
+              id: const Uuid().v4(),
+              position: const Offset(100, 100),
+              durationSeconds: 5,
+            ),
+          ),
         ),
       ],
     );
