@@ -25,7 +25,16 @@
 **Decision**: Create a `SidePanelCoordinator` or update `WorkflowViewModel` to manage the state (expanded/collapsed) of the two registries.
 **Rationale**: The Command Registry and Asset Registry need to share vertical space. Using a `Column` with `Expanded` widgets wrapped in "expandable/collapsible" containers (like `ExpansionTile` or custom animated containers) will provide the requested layout.
 
+### D-006: Offloading Heavy Operations (Isolates)
+**Decision**: Implement a reusable `IsolateProcessorService` for all I/O and image processing tasks.
+**Rationale**: To maintain 60 FPS and prevent UI jank, heavy tasks like image thumbnail generation, metadata JSON parsing, and bulk file I/O must be offloaded from the main UI thread. 
+- Use `Isolate.run()` for one-off heavy tasks (e.g., resizing a single dropped image).
+- Use a persistent `WorkPool` or a long-lived isolate for batch operations (e.g., directory re-scans) to minimize spawn overhead.
+- Utilize `TransferableTypedData` for large image byte transfers to avoid memory copies.
+**Alternatives considered**: `compute()` (limited control, good for small tasks), manual `Isolate.spawn` (too much boilerplate for most tasks).
+
 ## Unknowns Resolved
 - **Duplicate Handling**: Will use a standard "Overwrite/Rename/Skip" dialog as clarified by the user.
 - **External Deletion**: Resolved via `watcher` + "Missing" status icon in UI.
 - **Internal Referencing**: VWB nodes will store the Asset ID, not the path. `AssetStorageService` will resolve `ID -> Path` at runtime.
+- **UI Performance**: Offloaded to `IsolateProcessorService` to ensure smooth 60 FPS transitions.

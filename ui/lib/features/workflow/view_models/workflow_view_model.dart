@@ -7,10 +7,13 @@ import 'package:ui/features/workflow/services/workflow_engine.dart';
 import 'package:ui/features/workflow/services/workflow_persistence.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:ui/features/assets/services/asset_storage_service.dart';
+
 class WorkflowViewModel extends ChangeNotifier {
   final ApiClient _apiClient;
   final WorkflowEngine _engine;
   final WorkflowPersistence _persistence;
+  final AssetStorageService _assetStorage;
 
   late final vnf.NodeFlowController<models.NodeData, dynamic> controller;
 
@@ -21,15 +24,17 @@ class WorkflowViewModel extends ChangeNotifier {
     required WorkflowEngine engine,
     required WorkflowPersistence persistence,
     required ApiClient apiClient,
+    required AssetStorageService assetStorage,
   }) : _engine = engine,
        _persistence = persistence,
-       _apiClient = apiClient {
+       _apiClient = apiClient,
+       _assetStorage = assetStorage {
     controller = vnf.NodeFlowController<models.NodeData, dynamic>();
     _setupController();
-    _loadInitialWorkflow();
   }
 
-  Future<void> _loadInitialWorkflow() async {
+  Future<void> loadDraft() async {
+    controller.clearGraph();
     final draft = await _persistence.loadDraft();
     if (draft != null) {
       _workflowId = draft.id;
@@ -130,6 +135,12 @@ class WorkflowViewModel extends ChangeNotifier {
   );
 
   void addNode(models.NodeData data) {
+    // Prevent multiple start nodes
+    if (data is models.StartNode &&
+        controller.nodes.values.any((n) => n.data is models.StartNode)) {
+      return;
+    }
+
     final List<vnf.Port> ports = [];
 
     // Inputs
@@ -225,14 +236,23 @@ class WorkflowViewModel extends ChangeNotifier {
     _workflowId = const Uuid().v4();
     _workflowName = 'New Workflow';
     controller.clearGraph();
+    addNode(
+      models.StartNode(
+        id: const Uuid().v4(),
+        position: const Offset(100, 100),
+      ),
+    );
     notifyListeners();
   }
 
   Future<void> runWorkflow() async {
+    final assets = await _assetStorage.loadAssets();
+    final assetMap = {for (var a in assets) a.id: a.path};
+
     await _persistence.saveDraft(currentWorkflow);
     await _apiClient.hideApp();
     try {
-      await _engine.run(currentWorkflow);
+      await _engine.run(currentWorkflow, assetMap: assetMap);
     } finally {
       await _apiClient.showApp();
     }
@@ -301,17 +321,22 @@ class WorkflowViewModel extends ChangeNotifier {
     }
   }
 
-  void updateExistReferencePath(String nodeId, String path) {
+  void updateNodeAssetId(String nodeId, String assetId) {
     final node = controller.getNode(nodeId);
-    if (node != null && node.data is models.ExistNode) {
-      final oldData = node.data as models.ExistNode;
-      final newData = models.ExistNode(
-        id: oldData.id,
-        position: oldData.position,
-        referenceImagePath: path,
-      );
+    if (node == null) return;
 
-      // Replace node with updated data
+    models.NodeData? newData;
+    if (node.data is models.ExistNode) {
+      newData = (node.data as models.ExistNode).copyWith(assetId: assetId);
+    } else if (node.data is models.VisualCheckNode) {
+      newData = (node.data as models.VisualCheckNode).copyWith(
+        assetId: assetId,
+      );
+    } else if (node.data is models.VdaActionNode) {
+      newData = (node.data as models.VdaActionNode).copyWith(assetId: assetId);
+    }
+
+    if (newData != null) {
       controller.addNode(
         vnf.Node<models.NodeData>(
           id: node.id,
@@ -321,7 +346,6 @@ class WorkflowViewModel extends ChangeNotifier {
           ports: node.ports.toList(),
         ),
       );
-
       notifyListeners();
     }
   }

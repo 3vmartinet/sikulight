@@ -83,19 +83,21 @@ The user wants to rename assets to give them more descriptive names without brea
 ### Functional Requirements
 
 - **FR-001**: The application MUST default to the Visual Workflow Builder (VWB) screen upon startup.
-- **FR-002**: The left sidebar MUST be divided into two collapsible sections: "Command Registry" and "Asset Registry".
+- **FR-002**: The left sidebar MUST be divided into two collapsible sections: "Command Registry" and "Asset Registry". The collapsed state MUST display only category icons (50px width); the expanded state displays full text and controls (300px default width).
 - **FR-003**: The Asset Registry MUST monitor and display image files (PNG, JPG) located in a designated local storage directory.
-- **FR-004**: The Asset Registry MUST support receiving image files via drag-and-drop from the host operating system.
+- **FR-004**: The Asset Registry MUST support receiving image files via drag-and-drop from the host operating system. It MUST support bulk drag-and-drop, processing files sequentially.
 - **FR-005**: Dropped files MUST be persisted (copied) into the local assets storage directory.
 - **FR-006**: The Asset Registry MUST provide a layout switcher for "Grid" and "List" views.
 - **FR-007**: The "List" view MUST display the image thumbnail preview alongside the filename.
-- **FR-008**: The system MUST allow users to delete assets from the registry after a confirmation prompt, which removes the file from the local storage.
+- **FR-008**: The system MUST allow users to delete assets from the registry after a confirmation prompt, which removes the file from the local storage. If OS-level deletion fails, the system MUST notify the user and mark the asset as "Missing".
 - **FR-009**: The system MUST automatically create the local asset storage directory on startup if it does not already exist.
 - **FR-010**: The system MUST assign a unique internal ID to every asset upon creation/import.
 - **FR-011**: The system MUST use the unique internal ID to reference assets within workflows (VWB).
-- **FR-012**: The system MUST allow users to rename assets in the UI, which triggers a rename of the corresponding file on disk while preserving the internal ID.
-- **FR-013**: The system MUST detect if an asset's file is missing on disk and display a "Missing" status/icon in the Asset Registry.
-- **FR-014**: The system MUST allow users to either remove missing asset entries or re-link them to a new file, maintaining the internal ID.
+- **FR-012**: The system MUST allow users to rename assets in the UI, which triggers a rename of the corresponding file on disk while preserving the internal ID. Renaming to a name that already exists in the directory MUST be rejected with an error message.
+- **FR-013**: The system MUST detect if an asset's file is missing on disk and display a "Missing" status icon (red exclamation overlay and 50% opacity) in the Asset Registry.
+- **FR-014**: The system MUST allow users to either remove missing asset entries or re-link them to a new file (supporting PNG/JPG regardless of original extension), maintaining the internal ID.
+- **FR-015**: The system MUST automatically load the most recent draft workflow into the VWB upon startup.
+- **FR-016**: If the asset metadata file (`.assets.json`) is missing or corrupted, the system MUST re-scan the directory and prompt the user to re-register found images.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -103,15 +105,16 @@ The user wants to rename assets to give them more descriptive names without brea
     - **ID**: Internal unique identifier (UUID/string).
     - **Filename**: User-facing name and disk filename.
     - **Path**: Absolute or relative path to the file.
-    - **Thumbnail**: Cached or generated preview of the image.
-    - **Status**: Current state of the asset (e.g., Available, Missing).
+    - **Thumbnail**: Cached preview generated at 128x128px, stored in a hidden `.thumbnails` subdirectory.
+    - **Status**: Current state of the asset (Available, Missing).
+    - **lastModified**: Timestamp updated whenever filename or content changes.
 
 ## Success Criteria *(mandatory)*
 
 ## Clarifications
 
 ### Session 2026-05-05
-- Q: How should the system handle a situation where a user drops an image with a filename that already exists in the local storage? → A: Prompt the user to Overwrite, Rename, or Skip.
+- Q: How should the system handle a situation where a user drops an image with a filename that already exists in the local storage? → A: Prompt the user to Overwrite, Rename, or Skip. The "Skip" option applies only to the current file in a bulk operation.
 - Q: Should users be able to delete assets directly from the Asset Registry UI, and what is the expected behavior? → A: Direct Deletion with confirmation.
 - Q: What should happen if the designated asset storage directory does not exist when the application starts? → A: Create the directory silently if it's missing.
 - Q: Should users be able to rename existing assets within the Asset Registry UI? → A: Yes, rename directly in UI. Renaming must not break functionality (use internal unique ID for references).
@@ -121,13 +124,13 @@ The user wants to rename assets to give them more descriptive names without brea
 
 - **SC-001**: Users can drag and drop an asset and see it reflected in the registry in under 500ms.
 - **SC-002**: 100% of image files added via drag-and-drop are correctly persisted to the local file system.
-- **SC-003**: UI transitions (collapsing panels, switching layouts) are smooth, maintaining 60 FPS (under 16.6ms per frame) and completing within 200ms.
+- **SC-003**: UI transitions (collapsing panels, switching layouts) maintain 60 FPS (under 16.6ms per frame) and complete within 200ms.
 - **SC-004**: Renaming an asset takes effect on disk and in UI in under 200ms without breaking workflow references.
 
 ## Assumptions
 
-- [Asset storage location]: Assets are stored in a standard subfolder within the application's data directory (e.g., `~/Documents/Sikulight/Assets`).
-- [Supported formats]: Initially only PNG and JPG are supported for assets.
+- [Asset storage location]: macOS: `~/Library/Application Support/Sikulight/Assets`; Windows: `%APPDATA%/Sikulight/Assets`.
+- [Supported formats]: Only PNG and JPEG/JPG are supported. Dropping other formats MUST trigger a notification and be ignored.
 - [Duplicate handling]: If a dropped file's name conflicts with an existing asset, the system MUST prompt the user to Overwrite, Rename, or Skip.
-- [File System Monitoring]: The app uses a file watcher to detect changes; if a file is removed externally, the entry remains in the registry with a "Missing" status.
-- [ID Mapping]: A small metadata file (e.g., `.assets.json`) is maintained in the asset directory to map internal IDs to filenames and other metadata.
+- [File System Monitoring]: The app uses a file watcher with a 500ms debounce period to detect external changes.
+- [ID Mapping]: A small metadata file (`.assets.json`) is maintained in the asset directory to map internal IDs to filenames and other metadata.

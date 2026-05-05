@@ -22,6 +22,24 @@ sealed class NodeData extends Equatable {
     ...extraToJson(),
   };
 
+  Map<String, dynamic> toEngineJson(Map<String, String> assetMap) {
+    final json = toJson();
+    if (this is ExistNode) {
+      json['referenceImagePath'] = assetMap[(this as ExistNode).assetId] ?? '';
+    } else if (this is VisualCheckNode) {
+      json['referenceImagePath'] = assetMap[(this as VisualCheckNode).assetId] ?? '';
+    } else if (this is VdaActionNode) {
+      final node = this as VdaActionNode;
+      if (node.assetId != null) {
+        final path = assetMap[node.assetId!] ?? '';
+        final cmdJson = node.command.toJson();
+        cmdJson['reference_image_path'] = path;
+        json['command'] = cmdJson;
+      }
+    }
+    return json;
+  }
+
   Map<String, dynamic> extraToJson();
 
   static NodeData fromJson(Map<String, dynamic> json) {
@@ -46,12 +64,13 @@ sealed class NodeData extends Equatable {
             json['command'] as Map<String, dynamic>,
           ),
           timeoutOverride: json['timeoutOverride'] as int?,
+          assetId: json['assetId'] as String?,
         );
       case 'visual_check':
         return VisualCheckNode(
           id: id,
           position: position,
-          referenceImagePath: json['referenceImagePath'] as String,
+          assetId: json['assetId'] as String,
           confidenceThreshold: (json['confidenceThreshold'] as num).toDouble(),
           timeoutSeconds: json['timeoutSeconds'] as int,
         );
@@ -59,7 +78,7 @@ sealed class NodeData extends Equatable {
         return ExistNode(
           id: id,
           position: position,
-          referenceImagePath: json['referenceImagePath'] as String,
+          assetId: json['assetId'] as String,
         );
       case 'branch':
         return BranchNode(
@@ -130,20 +149,23 @@ class EndNode extends NodeData {
 class VdaActionNode extends NodeData {
   final TaskCommand command;
   final int? timeoutOverride;
+  final String? assetId;
 
   const VdaActionNode({
     required super.id,
     required super.position,
     required this.command,
     this.timeoutOverride,
+    this.assetId,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => VdaActionNode(
+  NodeData copyWith({Offset? position, String? assetId}) => VdaActionNode(
     id: id,
     position: position ?? this.position,
     command: command,
     timeoutOverride: timeoutOverride,
+    assetId: assetId ?? this.assetId,
   );
 
   @override
@@ -153,30 +175,31 @@ class VdaActionNode extends NodeData {
   Map<String, dynamic> extraToJson() => {
     'command': command.toJson(),
     'timeoutOverride': timeoutOverride,
+    'assetId': assetId,
   };
 
   @override
-  List<Object?> get props => [...super.props, command, timeoutOverride];
+  List<Object?> get props => [...super.props, command, timeoutOverride, assetId];
 }
 
 class VisualCheckNode extends NodeData {
-  final String referenceImagePath;
+  final String assetId;
   final double confidenceThreshold;
   final int timeoutSeconds;
 
   const VisualCheckNode({
     required super.id,
     required super.position,
-    required this.referenceImagePath,
+    required this.assetId,
     this.confidenceThreshold = 0.8,
     this.timeoutSeconds = 30,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => VisualCheckNode(
+  NodeData copyWith({Offset? position, String? assetId}) => VisualCheckNode(
     id: id,
     position: position ?? this.position,
-    referenceImagePath: referenceImagePath,
+    assetId: assetId ?? this.assetId,
     confidenceThreshold: confidenceThreshold,
     timeoutSeconds: timeoutSeconds,
   );
@@ -186,7 +209,7 @@ class VisualCheckNode extends NodeData {
 
   @override
   Map<String, dynamic> extraToJson() => {
-    'referenceImagePath': referenceImagePath,
+    'assetId': assetId,
     'confidenceThreshold': confidenceThreshold,
     'timeoutSeconds': timeoutSeconds,
   };
@@ -194,7 +217,7 @@ class VisualCheckNode extends NodeData {
   @override
   List<Object?> get props => [
     ...super.props,
-    referenceImagePath,
+    assetId,
     confidenceThreshold,
     timeoutSeconds,
   ];
@@ -333,29 +356,29 @@ class WaitNode extends NodeData {
 }
 
 class ExistNode extends NodeData {
-  final String referenceImagePath;
+  final String assetId;
 
   const ExistNode({
     required super.id,
     required super.position,
-    required this.referenceImagePath,
+    required this.assetId,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => ExistNode(
+  NodeData copyWith({Offset? position, String? assetId}) => ExistNode(
     id: id,
     position: position ?? this.position,
-    referenceImagePath: referenceImagePath,
+    assetId: assetId ?? this.assetId,
   );
 
   @override
   String get type => 'exist';
 
   @override
-  Map<String, dynamic> extraToJson() => {'referenceImagePath': referenceImagePath};
+  Map<String, dynamic> extraToJson() => {'assetId': assetId};
 
   @override
-  List<Object?> get props => [...super.props, referenceImagePath];
+  List<Object?> get props => [...super.props, assetId];
 }
 
 class ConnectionData extends Equatable {
@@ -416,6 +439,14 @@ class Workflow extends Equatable {
     'id': id,
     'name': name,
     'nodes': nodes.map((e) => e.toJson()).toList(),
+    'connections': connections.map((e) => e.toJson()).toList(),
+    'variables': variables,
+  };
+
+  Map<String, dynamic> toEngineJson(Map<String, String> assetMap) => {
+    'id': id,
+    'name': name,
+    'nodes': nodes.map((e) => e.toEngineJson(assetMap)).toList(),
     'connections': connections.map((e) => e.toJson()).toList(),
     'variables': variables,
   };

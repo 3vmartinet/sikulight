@@ -30,13 +30,17 @@ class WorkflowEngine extends ChangeNotifier {
 
   WorkflowEngine({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  Future<void> run(Workflow workflow) async {
+  final Map<String, String> _assetMap = {};
+
+  Future<void> run(Workflow workflow, {Map<String, String> assetMap = const {}}) async {
     if (_status == WorkflowStatus.running) return;
 
     _status = WorkflowStatus.running;
     _activeNodeId = null;
     _variables.clear();
     _variables.addAll(workflow.variables);
+    _assetMap.clear();
+    _assetMap.addAll(assetMap);
     _nodeExecutionCounts.clear();
     _lastResult = null;
     _stopwatch.reset();
@@ -84,12 +88,20 @@ class WorkflowEngine extends ChangeNotifier {
         _status = WorkflowStatus.completed;
         break;
       case VdaActionNode n:
-        _lastResult = await _apiClient.executeTask(n.command);
+        var command = n.command;
+        if (n.assetId != null) {
+          command = TaskCommand(
+            name: command.name,
+            referenceImagePath: _assetMap[n.assetId!] ?? command.referenceImagePath,
+            profile: command.profile,
+          );
+        }
+        _lastResult = await _apiClient.executeTask(command);
         break;
       case VisualCheckNode n:
         final command = TaskCommand(
           name: 'Visual Check',
-          referenceImagePath: n.referenceImagePath,
+          referenceImagePath: _assetMap[n.assetId] ?? '',
           profile: const TaskProfile(
             mode: 'STANDARD',
             standardAction: 'HOVER',
@@ -102,7 +114,7 @@ class WorkflowEngine extends ChangeNotifier {
       case ExistNode n:
         final command = TaskCommand(
           name: 'Exist Check',
-          referenceImagePath: n.referenceImagePath,
+          referenceImagePath: _assetMap[n.assetId] ?? '',
           profile: const TaskProfile(
             mode: 'EXIST',
             standardAction: 'NONE',

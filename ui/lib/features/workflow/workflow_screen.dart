@@ -1,42 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ui/core/api_client.dart';
-import 'package:ui/features/tasks/task_provider.dart';
+import 'package:ui/core/constants.dart';
+import 'package:ui/features/assets/widgets/asset_registry_panel.dart';
+import 'package:ui/features/workflow/view_models/sidebar_view_model.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
-import 'package:ui/features/workflow/services/workflow_engine.dart';
-import 'package:ui/features/workflow/services/workflow_persistence.dart';
 import 'package:ui/features/workflow/widgets/workflow_canvas.dart';
 import 'package:ui/features/workflow/widgets/workflow_toolbar.dart';
 import 'package:ui/features/workflow/widgets/command_registry_panel.dart';
 import 'package:ui/features/workflow/widgets/node_parameter_panel.dart';
+import 'package:ui/features/workflow/widgets/expandable_panel.dart';
 
 class WorkflowScreen extends StatelessWidget {
   const WorkflowScreen({super.key});
 
   static void show(BuildContext context) {
-    final apiClient = ApiClient();
-    final taskProvider = context.read<TaskProvider>();
-
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider.value(value: taskProvider),
-            ChangeNotifierProvider(
-              create: (_) => WorkflowEngine(apiClient: apiClient),
-            ),
-            Provider(create: (_) => WorkflowPersistence()),
-            ChangeNotifierProvider(
-              create: (context) => WorkflowViewModel(
-                apiClient: apiClient,
-                engine: context.read<WorkflowEngine>(),
-                persistence: context.read<WorkflowPersistence>(),
-              ),
-            ),
-          ],
-          child: const WorkflowScreen(),
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const WorkflowScreen()),
     );
   }
 
@@ -52,6 +31,8 @@ class _WorkflowScreenBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<WorkflowViewModel>();
+    final sidebarViewModel = context.watch<SidebarViewModel>();
+    
     final selectedNode = viewModel.controller.nodes.values
         .where((node) => node.isSelected)
         .firstOrNull;
@@ -62,12 +43,47 @@ class _WorkflowScreenBody extends StatelessWidget {
       body: SizedBox.expand(
         child: Row(
           children: [
-            const CommandRegistryPanel(),
+            _Sidebar(viewModel: sidebarViewModel),
             const Expanded(child: WorkflowCanvas()),
             if (selectedNodeId.isNotEmpty)
               NodeParameterPanel(nodeId: selectedNodeId),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Sidebar extends StatelessWidget {
+  final SidebarViewModel viewModel;
+
+  const _Sidebar({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: AppConstants.expandedSidebarWidth,
+      decoration: BoxDecoration(
+        color: Theme.of(context).canvasColor,
+        border: Border(
+          right: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: Column(
+        children: [
+          ExpandablePanel(
+            header: const Text('Commands Registry'),
+            isExpanded: viewModel.isCommandRegistryExpanded,
+            onToggle: viewModel.toggleCommandRegistry,
+            child: const CommandRegistryPanel(),
+          ),
+          ExpandablePanel(
+            header: const Text('Asset Registry'),
+            isExpanded: viewModel.isAssetRegistryExpanded,
+            onToggle: viewModel.toggleAssetRegistry,
+            child: const AssetRegistryPanel(),
+          ),
+        ],
       ),
     );
   }

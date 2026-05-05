@@ -5,17 +5,20 @@
 
 ## Summary
 
-Refactor the VDA main UI to set the Visual Workflow Builder (VWB) as the default entry point. Implement a dual-registry side panel on the left containing the existing Command Registry and a new Asset Registry. The Asset Registry will manage image assets (PNG/JPG) using a local directory, supporting drag-and-drop import, in-UI renaming, deletion, and "missing" state detection. Assets will be tracked via internal unique IDs to ensure workflow references remain intact during renames.
+Refactor the VDA main UI to set the Visual Workflow Builder (VWB) as the default entry point. Implement a dual-registry side panel on the left containing the existing Command Registry and a new Asset Registry. The Asset Registry will manage image assets (PNG/JPG) using a local directory, supporting drag-and-drop import, in-UI renaming, deletion, and "missing" state detection. **To ensure smooth 60 FPS performance, all heavy I/O and image processing (thumbnail generation) will be offloaded to Dart Isolates via a reusable `IsolateProcessorService`.** Assets will be tracked via internal unique IDs to ensure workflow references remain intact during renames.
 
 ## Technical Context
 
 **Language/Version**: Flutter (Dart ^3.11.5), Python (3.10+)  
-**Primary Dependencies**: `provider`, `path_provider`, `uuid`, `vyuh_node_flow` (Flutter); `fastapi`, `pydantic` (Python)  
+**Primary Dependencies**: `provider`, `path_provider`, `uuid`, `vyuh_node_flow`, `image`, `desktop_drop`, `watcher`  
 **Storage**: Local file system (images), JSON metadata (`.assets.json`) for ID-to-path mapping.  
 **Testing**: `flutter_test` (unit/widget), `pytest` (engine integration)  
 **Target Platform**: macOS (Darwin) - based on current environment.  
 **Project Type**: Desktop Application (Flutter) with Local Engine (Python).  
-**Performance Goals**: Drag-and-drop reflection < 500ms; UI transitions (layout/collapse) < 200ms.  
+**Performance Goals**: 
+- Drag-and-drop reflection < 500ms.
+- UI transitions (layout/collapse) < 200ms at 60 FPS.
+- **Isolate-based offloading for all tasks > 16ms.**  
 **Constraints**: Zero hardcoded UI strings; strict UI/Logic separation (Provider).  
 **Scale/Scope**: Support for hundreds of image assets; single-user local automation.
 
@@ -28,6 +31,7 @@ Refactor the VDA main UI to set the Visual Workflow Builder (VWB) as the default
 - [x] **Test-First**: TDD will be applied to `AssetViewModel` and ID mapping logic.
 - [x] **Observability**: Structured logging using `debugPrint` in Flutter.
 - [x] **Simplicity & YAGNI**: No database; using simple JSON metadata file for asset tracking.
+- [x] **UI Thread Responsiveness**: **(NEW)** Heavy operations MUST run in Dart Isolates to prevent UI jank.
 
 ## Project Structure
 
@@ -48,6 +52,9 @@ specs/006-ui-refactor-asset-registry/
 
 ```text
 ui/lib/
+├── core/
+│   └── utils/
+│       └── isolate_processor_service.dart # REUSABLE: Isolate worker utility
 ├── features/
 │   ├── workflow/        # Existing VWB (startup refactor)
 │   └── assets/          # NEW: Asset Registry feature
@@ -60,7 +67,7 @@ engine/src/
 │   └── storage.py       # Potential engine-side asset path management
 ```
 
-**Structure Decision**: Standard feature-based structure for Flutter; adding a new `assets` feature module.
+**Structure Decision**: Standard feature-based structure for Flutter; adding a new `assets` feature module and a reusable `core/utils` service for Isolates.
 
 ## Complexity Tracking
 

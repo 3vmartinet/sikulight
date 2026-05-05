@@ -7,6 +7,8 @@ import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/models/workflow_models.dart' as models;
 import 'package:ui/features/workflow/services/workflow_engine.dart';
 
+import 'package:ui/features/assets/view_models/asset_view_model.dart';
+
 const _imageSize = 56.0;
 
 class WorkflowCanvas extends StatelessWidget {
@@ -50,6 +52,20 @@ class _NodeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final assetViewModel = context.watch<AssetViewModel>();
+
+    String? assetId;
+    if (nodeData is models.ExistNode) {
+      assetId = (nodeData as models.ExistNode).assetId;
+    } else if (nodeData is models.VisualCheckNode) {
+      assetId = (nodeData as models.VisualCheckNode).assetId;
+    } else if (nodeData is models.VdaActionNode) {
+      assetId = (nodeData as models.VdaActionNode).assetId;
+    }
+
+    final asset = assetId != null
+        ? assetViewModel.assets.where((a) => a.id == assetId).firstOrNull
+        : null;
 
     return Stack(
       children: [
@@ -89,25 +105,31 @@ class _NodeWidget extends StatelessWidget {
                   color: Colors.white70,
                 ),
               ),
-              if (nodeData is models.ExistNode &&
-                  (nodeData as models.ExistNode).referenceImagePath.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.file(
-                    File((nodeData as models.ExistNode).referenceImagePath),
-                    width: _imageSize,
-                    height: _imageSize,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.broken_image,
-                      color: Colors.white,
+              if (asset != null)
+                FutureBuilder<String>(
+                  future: assetViewModel.getThumbnailPath(asset),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && File(snapshot.data!).existsSync()) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.file(
+                          File(snapshot.data!),
+                          width: _imageSize,
+                          height: _imageSize,
+                          fit: BoxFit.cover,
+                        ),
+                      );
+                    }
+                    return const Icon(
+                      Icons.image,
                       size: _imageSize,
-                    ),
-                  ),
+                      color: Colors.white54,
+                    );
+                  },
                 )
               else
                 Text(
-                  _getNodeLabel(nodeData),
+                  _getNodeLabel(nodeData, asset?.filename),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                   ),
@@ -156,14 +178,13 @@ class _NodeWidget extends StatelessWidget {
     };
   }
 
-  String _getNodeLabel(models.NodeData data) {
+  String _getNodeLabel(models.NodeData data, String? assetName) {
     return switch (data) {
       models.StartNode() => 'START',
       models.EndNode() => 'END',
-      models.VdaActionNode n => n.command.name,
-      models.VisualCheckNode n =>
-        'Check: ${n.referenceImagePath.split('/').last}',
-      models.ExistNode n => 'Exist: ${n.referenceImagePath.split('/').last}',
+      models.VdaActionNode n => assetName ?? n.command.name,
+      models.VisualCheckNode _ => 'Check: ${assetName ?? '???'}',
+      models.ExistNode _ => 'Exist: ${assetName ?? '???'}',
       models.BranchNode n => 'If ${n.conditionType.name}',
       models.LoopNode n => 'Repeat (${n.loopType.name})',
       models.VariableNode n => '${n.variableName} = ${n.value}',

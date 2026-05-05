@@ -75,6 +75,19 @@ class MockApiClient extends _i1.Mock implements _i3.ApiClient {
           as _i5.Future<_i2.ExecutionResult>);
 
   @override
+  _i5.Future<_i2.ExecutionResult> checkTask(_i6.TaskCommand? task) =>
+      (super.noSuchMethod(
+            Invocation.method(#checkTask, [task]),
+            returnValue: _i5.Future<_i2.ExecutionResult>.value(
+              _FakeExecutionResult_0(
+                this,
+                Invocation.method(#checkTask, [task]),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.ExecutionResult>);
+
+  @override
   _i5.Future<Map<String, dynamic>> abortTask() =>
       (super.noSuchMethod(
             Invocation.method(#abortTask, []),
@@ -93,4 +106,22 @@ class MockApiClient extends _i1.Mock implements _i3.ApiClient {
             ),
           )
           as _i5.Future<Map<String, dynamic>>);
+
+  @override
+  _i5.Future<void> hideApp() =>
+      (super.noSuchMethod(
+            Invocation.method(#hideApp, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> showApp() =>
+      (super.noSuchMethod(
+            Invocation.method(#showApp, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 }
