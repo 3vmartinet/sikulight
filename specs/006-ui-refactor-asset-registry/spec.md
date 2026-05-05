@@ -121,7 +121,7 @@ The user wants to rename assets to give them more descriptive names without brea
 
 - **SC-001**: Users can drag and drop an asset and see it reflected in the registry in under 500ms.
 - **SC-002**: 100% of image files added via drag-and-drop are correctly persisted to the local file system.
-- **SC-003**: UI transitions (collapsing panels, switching layouts) are smooth and occur without visible lag.
+- **SC-003**: UI transitions (collapsing panels, switching layouts) are smooth, maintaining 60 FPS (under 16.6ms per frame) and completing within 200ms.
 - **SC-004**: Renaming an asset takes effect on disk and in UI in under 200ms without breaking workflow references.
 
 ## Assumptions
