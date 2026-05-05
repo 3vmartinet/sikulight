@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vyuh_node_flow/vyuh_node_flow.dart' as vnf;
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/models/workflow_models.dart' as models;
 import 'package:ui/features/workflow/services/workflow_engine.dart';
+
+const _imageSize = 56.0;
 
 class WorkflowCanvas extends StatelessWidget {
   const WorkflowCanvas({super.key});
@@ -16,6 +20,9 @@ class WorkflowCanvas extends StatelessWidget {
     return vnf.NodeFlowEditor<models.NodeData, dynamic>(
       controller: viewModel.controller,
       theme: vnf.NodeFlowTheme.light,
+      connectionStyleBuilder: (connection, sourceNode, targetNode) {
+        return vnf.ConnectionStyles.bezier;
+      },
       nodeBuilder: (context, node) {
         final isActive = engine.activeNodeId == node.id;
         final executionCount = engine.nodeExecutionCounts[node.id] ?? 0;
@@ -35,7 +42,7 @@ class _NodeWidget extends StatelessWidget {
   final int executionCount;
 
   const _NodeWidget({
-    required this.nodeData, 
+    required this.nodeData,
     this.isActive = false,
     this.executionCount = 0,
   });
@@ -43,13 +50,13 @@ class _NodeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Stack(
-      clipBehavior: Clip.none,
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          constraints: const BoxConstraints(minWidth: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
             color: _getNodeColor(theme, nodeData),
             borderRadius: BorderRadius.circular(8),
@@ -73,6 +80,7 @@ class _NodeWidget extends StatelessWidget {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 8,
             children: [
               Text(
                 nodeData.type.toUpperCase(),
@@ -81,12 +89,30 @@ class _NodeWidget extends StatelessWidget {
                   color: Colors.white70,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _getNodeLabel(nodeData),
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
+              if (nodeData is models.ExistNode &&
+                  (nodeData as models.ExistNode).referenceImagePath.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.file(
+                    File((nodeData as models.ExistNode).referenceImagePath),
+                    width: _imageSize,
+                    height: _imageSize,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: _imageSize,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  _getNodeLabel(nodeData),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
             ],
           ),
         ),
@@ -122,6 +148,7 @@ class _NodeWidget extends StatelessWidget {
       models.EndNode() => Colors.red.shade700,
       models.VdaActionNode() => Colors.blue.shade700,
       models.VisualCheckNode() => Colors.teal.shade700,
+      models.ExistNode() => Colors.amber.shade800,
       models.BranchNode() => Colors.orange.shade800,
       models.LoopNode() => Colors.purple.shade700,
       models.VariableNode() => Colors.indigo.shade700,
@@ -134,7 +161,9 @@ class _NodeWidget extends StatelessWidget {
       models.StartNode() => 'START',
       models.EndNode() => 'END',
       models.VdaActionNode n => n.command.name,
-      models.VisualCheckNode n => 'Check: ${n.referenceImagePath.split('/').last}',
+      models.VisualCheckNode n =>
+        'Check: ${n.referenceImagePath.split('/').last}',
+      models.ExistNode n => 'Exist: ${n.referenceImagePath.split('/').last}',
       models.BranchNode n => 'If ${n.conditionType.name}',
       models.LoopNode n => 'Repeat (${n.loopType.name})',
       models.VariableNode n => '${n.variableName} = ${n.value}',

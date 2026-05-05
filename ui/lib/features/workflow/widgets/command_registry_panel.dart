@@ -80,6 +80,17 @@ class _SystemNodesList extends StatelessWidget {
             ),
           ),
         ),
+        ListTile(
+          title: const Text('Exist Node'),
+          leading: const Icon(Icons.visibility),
+          onTap: () => viewModel.addNode(
+            ExistNode(
+              id: const Uuid().v4(),
+              position: const Offset(100, 100),
+              referenceImagePath: '',
+            ),
+          ),
+        ),
       ],
     );
   }

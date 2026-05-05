@@ -99,6 +99,19 @@ class WorkflowEngine extends ChangeNotifier {
         );
         _lastResult = await _apiClient.checkTask(command);
         break;
+      case ExistNode n:
+        final command = TaskCommand(
+          name: 'Exist Check',
+          referenceImagePath: n.referenceImagePath,
+          profile: const TaskProfile(
+            mode: 'EXIST',
+            standardAction: 'NONE',
+            confidenceThreshold: 0.8,
+            timeoutSeconds: 5,
+          ),
+        );
+        _lastResult = await _apiClient.checkTask(command);
+        break;
       case WaitNode n:
         await Future.delayed(Duration(seconds: n.durationSeconds));
         break;
@@ -140,7 +153,7 @@ class WorkflowEngine extends ChangeNotifier {
     if (node is BranchNode) {
       final outcome = _evaluateCondition(node);
       selectedConnection = connections.where((c) => c.sourcePortId == outcome).firstOrNull ?? connections.first;
-    } else if (node is VisualCheckNode) {
+    } else if (node is VisualCheckNode || node is ExistNode) {
       final outcome = _lastResult?.success == true ? 'Found' : 'Not Found';
       selectedConnection = connections.where((c) => c.sourcePortId == outcome).firstOrNull ?? connections.first;
     } else if (node is LoopNode) {

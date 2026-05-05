@@ -55,6 +55,12 @@ sealed class NodeData extends Equatable {
           confidenceThreshold: (json['confidenceThreshold'] as num).toDouble(),
           timeoutSeconds: json['timeoutSeconds'] as int,
         );
+      case 'exist':
+        return ExistNode(
+          id: id,
+          position: position,
+          referenceImagePath: json['referenceImagePath'] as String,
+        );
       case 'branch':
         return BranchNode(
           id: id,
@@ -324,6 +330,32 @@ class WaitNode extends NodeData {
 
   @override
   List<Object?> get props => [...super.props, durationSeconds];
+}
+
+class ExistNode extends NodeData {
+  final String referenceImagePath;
+
+  const ExistNode({
+    required super.id,
+    required super.position,
+    required this.referenceImagePath,
+  });
+
+  @override
+  NodeData copyWith({Offset? position}) => ExistNode(
+    id: id,
+    position: position ?? this.position,
+    referenceImagePath: referenceImagePath,
+  );
+
+  @override
+  String get type => 'exist';
+
+  @override
+  Map<String, dynamic> extraToJson() => {'referenceImagePath': referenceImagePath};
+
+  @override
+  List<Object?> get props => [...super.props, referenceImagePath];
 }
 
 class ConnectionData extends Equatable {

@@ -34,12 +34,12 @@ class WorkflowViewModel extends ChangeNotifier {
     if (draft != null) {
       _workflowId = draft.id;
       _workflowName = draft.name;
-      
+
       // Load nodes
       for (final node in draft.nodes) {
         addNode(node);
       }
-      
+
       // Recreate connections
       for (final conn in draft.connections) {
         controller.addConnection(
@@ -112,7 +112,6 @@ class WorkflowViewModel extends ChangeNotifier {
     _isUpdating = false;
   }
 
-
   models.Workflow get currentWorkflow => models.Workflow(
     id: _workflowId,
     name: _workflowName,
@@ -141,19 +140,21 @@ class WorkflowViewModel extends ChangeNotifier {
           name: 'In',
           type: vnf.PortType.input,
           position: vnf.PortPosition.left,
+          offset: const Offset(0, 30),
         ),
       );
     }
 
     // Outputs
     if (data is models.BranchNode) {
-      for (final outcome in data.outcomes) {
+      for (int i = 0; i < data.outcomes.length; i++) {
         ports.add(
           vnf.Port(
-            id: outcome,
-            name: outcome,
+            id: data.outcomes[i],
+            name: data.outcomes[i],
             type: vnf.PortType.output,
             position: vnf.PortPosition.right,
+            offset: Offset(0, 25.0 + (i * 20.0)),
           ),
         );
       }
@@ -164,6 +165,7 @@ class WorkflowViewModel extends ChangeNotifier {
           name: 'Found',
           type: vnf.PortType.output,
           position: vnf.PortPosition.right,
+          offset: const Offset(0, 25),
         ),
       );
       ports.add(
@@ -172,6 +174,28 @@ class WorkflowViewModel extends ChangeNotifier {
           name: 'Not Found',
           type: vnf.PortType.output,
           position: vnf.PortPosition.right,
+          offset: const Offset(0, 45),
+        ),
+      );
+    } else if (data is models.ExistNode) {
+      ports.add(
+        vnf.Port(
+          id: 'Found',
+          name: 'Yes',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 25),
+          showLabel: true,
+        ),
+      );
+      ports.add(
+        vnf.Port(
+          id: 'Not Found',
+          name: 'No',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 45),
+          showLabel: true,
         ),
       );
     } else if (data is! models.EndNode) {
@@ -181,6 +205,7 @@ class WorkflowViewModel extends ChangeNotifier {
           name: 'Out',
           type: vnf.PortType.output,
           position: vnf.PortPosition.right,
+          offset: const Offset(0, 30),
         ),
       );
     }
@@ -259,6 +284,31 @@ class WorkflowViewModel extends ChangeNotifier {
         position: oldData.position,
         command: oldData.command,
         timeoutOverride: timeout,
+      );
+
+      // Replace node with updated data
+      controller.addNode(
+        vnf.Node<models.NodeData>(
+          id: node.id,
+          type: node.type,
+          position: node.position.value,
+          data: newData,
+          ports: node.ports.toList(),
+        ),
+      );
+
+      notifyListeners();
+    }
+  }
+
+  void updateExistReferencePath(String nodeId, String path) {
+    final node = controller.getNode(nodeId);
+    if (node != null && node.data is models.ExistNode) {
+      final oldData = node.data as models.ExistNode;
+      final newData = models.ExistNode(
+        id: oldData.id,
+        position: oldData.position,
+        referenceImagePath: path,
       );
 
       // Replace node with updated data
