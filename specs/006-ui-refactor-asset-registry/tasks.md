@@ -15,26 +15,27 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Add `desktop_drop`, `watcher`, `uuid`, and `path_provider` dependencies to `ui/pubspec.yaml`
-- [ ] T002 Create directory structure for the assets feature in `ui/lib/features/assets/`
-- [ ] T003 [P] Configure project-wide constants for asset storage in `ui/lib/core/constants.dart`
+- [ ] T001 Add `desktop_drop`, `watcher`, `uuid`, `path_provider`, and `image` dependencies to `ui/pubspec.yaml`
+- [ ] T002 Create directory structure for the assets feature in `ui/lib/features/assets/` and `ui/lib/core/utils/`
+- [ ] T003 [P] Configure project-wide constants for asset storage and paths in `ui/lib/core/constants.dart`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Purpose**: Core infrastructure and performance utilities that MUST be complete before ANY user story can be implemented
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Define `Asset` and `AssetStatus` models in `ui/lib/features/assets/models/asset.dart`
-- [ ] T005 Implement `AssetStorageService` for local file I/O and `.assets.json` management in `ui/lib/features/assets/services/asset_storage_service.dart`
-- [ ] T006 Implement `AssetViewModel` (ChangeNotifier) to manage state and monitoring in `ui/lib/features/assets/view_models/asset_view_model.dart`
-- [ ] T007 Initialize `DirectoryWatcher` within `AssetStorageService` to monitor external changes
-- [ ] T008 [P] Implement unit tests for `AssetStorageService` in `ui/test/features/assets/asset_storage_service_test.dart`
-- [ ] T009 [P] Implement unit tests for `AssetViewModel` in `ui/test/features/assets/asset_view_model_test.dart`
+- [ ] T004 Implement `IsolateProcessorService` for offloading heavy I/O and image tasks in `ui/lib/core/utils/isolate_processor_service.dart`
+- [ ] T005 Define `Asset` and `AssetStatus` models in `ui/lib/features/assets/models/asset.dart`
+- [ ] T006 Implement `AssetStorageService` for metadata and file persistence (using `IsolateProcessorService`) in `ui/lib/features/assets/services/asset_storage_service.dart`
+- [ ] T007 Implement `AssetViewModel` (ChangeNotifier) for state management and directory monitoring in `ui/lib/features/assets/view_models/asset_view_model.dart`
+- [ ] T008 [P] Implement unit tests for `IsolateProcessorService` in `ui/test/core/utils/isolate_processor_service_test.dart`
+- [ ] T009 [P] Implement unit tests for `AssetStorageService` in `ui/test/features/assets/asset_storage_service_test.dart`
+- [ ] T010 [P] Implement unit tests for `AssetViewModel` in `ui/test/features/assets/asset_view_model_test.dart`
 
-**Checkpoint**: Foundation ready - asset management logic is verified and ready for UI integration.
+**Checkpoint**: Foundation ready - heavy task offloading and asset logic are verified.
 
 ---
 
@@ -46,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Update `ui/lib/main.dart` to use `WorkflowScreen` as the home widget
-- [ ] T011 [US1] Ensure `MultiProvider` in `main.dart` includes `AssetViewModel` at the root level
-- [ ] T012 [US1] Refactor `WorkflowScreen.show` to handle navigation/initialization if launched as home in `ui/lib/features/workflow/workflow_screen.dart`
+- [ ] T011 [US1] Update `ui/lib/main.dart` to use `WorkflowScreen` as the home widget and load most recent draft (FR-015)
+- [ ] T012 [US1] Ensure `MultiProvider` in `main.dart` includes `AssetViewModel` and `IsolateProcessorService` at the root level
+- [ ] T013 [US1] Refactor `WorkflowScreen.show` to support direct launch as the root view in `ui/lib/features/workflow/workflow_screen.dart`
 
 **Checkpoint**: VDA now defaults to the VWB workspace.
 
@@ -62,10 +63,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Create `AssetRegistryPanel` (base container) in `ui/lib/features/assets/widgets/asset_registry_panel.dart`
-- [ ] T014 [US3] Implement `DragAndDropOverlay` using `desktop_drop` in `ui/lib/features/assets/widgets/drag_and_drop_overlay.dart`
-- [ ] T015 [US3] Implement `AssetStorageService.importAsset` logic to handle persistence and ID assignment
-- [ ] T016 [US3] Add "Duplicate Handling" prompt (Overwrite/Rename/Skip) in `ui/lib/features/assets/widgets/duplicate_dialog.dart`
+- [ ] T014 [US3] Create `AssetRegistryPanel` (base container) in `ui/lib/features/assets/widgets/asset_registry_panel.dart`
+- [ ] T015 [US3] Implement `DragAndDropOverlay` using `desktop_drop` in `ui/lib/features/assets/widgets/drag_and_drop_overlay.dart`
+- [ ] T016 [US3] Implement `AssetStorageService.importAsset` with isolate-based thumbnail generation (FR-010)
+- [ ] T017 [US3] Add "Duplicate Handling" prompt (Overwrite/Rename/Skip) in `ui/lib/features/assets/widgets/duplicate_dialog.dart`
 
 **Checkpoint**: Users can now import assets via drag-and-drop.
 
@@ -79,10 +80,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Update `_WorkflowScreenBody` to include both `CommandRegistryPanel` and `AssetRegistryPanel` in `ui/lib/features/workflow/workflow_screen.dart`
-- [ ] T018 [US2] Implement a shared `SidebarViewModel` or update `WorkflowViewModel` to track expansion states in `ui/lib/features/workflow/view_models/workflow_view_model.dart`
-- [ ] T019 [US2] Create an `ExpandablePanel` wrapper widget in `ui/lib/features/workflow/widgets/expandable_panel.dart` for the registries
-- [ ] T020 [US2] Refactor `CommandRegistryPanel` to fit within the new collapsible layout in `ui/lib/features/workflow/widgets/command_registry_panel.dart`
+- [ ] T018 [US2] Update `_WorkflowScreenBody` to include both `CommandRegistryPanel` and `AssetRegistryPanel` in `ui/lib/features/workflow/workflow_screen.dart`
+- [ ] T019 [US2] Implement a shared `SidebarViewModel` or update `WorkflowViewModel` to track expansion states in `ui/lib/features/workflow/view_models/workflow_view_model.dart`
+- [ ] T020 [US2] Create an `ExpandablePanel` wrapper widget supporting the 50px collapsed state (FR-002) in `ui/lib/features/workflow/widgets/expandable_panel.dart`
+- [ ] T021 [US2] Refactor `CommandRegistryPanel` to fit within the new collapsible layout in `ui/lib/features/workflow/widgets/command_registry_panel.dart`
 
 **Checkpoint**: Side panel management is functional, allowing users to toggle between registries.
 
@@ -96,11 +97,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T021 [US5] Implement `AssetViewModel.renameAsset` logic to update disk name and metadata while preserving UUID
-- [ ] T022 [US5] Add inline renaming or a dialog in `ui/lib/features/assets/widgets/asset_item_tile.dart`
-- [ ] T023 [US5] Update `VdaActionNode` to store `assetId` instead of `path` in `ui/lib/features/workflow/models/workflow_models.dart`
-- [ ] T024 [US5] Update node parameter resolution to look up path via ID in `ui/lib/features/workflow/widgets/node_parameter_panel.dart`
-- [ ] T030 [US5] Implement deletion confirmation dialog and logic for assets in `ui/lib/features/assets/widgets/delete_dialog.dart`
+- [ ] T022 [US5] Implement `AssetViewModel.renameAsset` logic to update disk name while preserving UUID (FR-012)
+- [ ] T023 [US5] Add inline renaming UI or a dialog in `ui/lib/features/assets/widgets/asset_item_tile.dart`
+- [ ] T024 [US5] Update `VdaActionNode` to store `assetId` instead of `path` in `ui/lib/features/workflow/models/workflow_models.dart`
+- [ ] T025 [US5] Update node parameter resolution to look up path via ID in `ui/lib/features/workflow/widgets/node_parameter_panel.dart`
+- [ ] T026 [US5] Implement asset deletion with confirmation and missing file detection (FR-008) in `ui/lib/features/assets/widgets/delete_dialog.dart`
 
 **Checkpoint**: Assets can be safely managed (renamed/deleted) while maintaining workflow integrity.
 
@@ -114,11 +115,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [P] [US4] Implement `AssetGridView` in `ui/lib/features/assets/widgets/asset_grid_view.dart`
-- [ ] T026 [P] [US4] Implement `AssetListView` in `ui/lib/features/assets/widgets/asset_list_view.dart`
-- [ ] T027 [US4] Add a toolbar with layout switcher to `AssetRegistryPanel` in `ui/lib/features/assets/widgets/asset_registry_panel.dart`
-- [ ] T028 [US4] Add "Missing" status indicator/icon to asset items in `ui/lib/features/assets/widgets/asset_item_tile.dart`
-- [ ] T028b [US4] Implement "Re-link" and "Remove Missing" UI and logic in `ui/lib/features/assets/widgets/asset_item_tile.dart`
+- [ ] T027 [P] [US4] Implement `AssetGridView` and `AssetListView` in `ui/lib/features/assets/widgets/asset_views.dart`
+- [ ] T028 [US4] Add a toolbar with layout switcher to `AssetRegistryPanel` in `ui/lib/features/assets/widgets/asset_registry_panel.dart`
+- [ ] T029 [US4] Add "Missing" status indicator/icon with re-linking UI (FR-013, FR-014) in `ui/lib/features/assets/widgets/asset_item_tile.dart`
+- [ ] T029b [US4] Implement metadata corruption recovery UI prompt (FR-016) in `ui/lib/features/assets/widgets/asset_registry_panel.dart`
 
 **Checkpoint**: Asset browsing experience is complete with flexible layouts, status detection, and reconciliation tools.
 
@@ -126,45 +126,44 @@
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T029 [P] Update `quickstart.md` with final screenshots or instructions
-- [ ] T031 Optimize thumbnail loading performance using `Image.file` cache
+- [ ] T030 [P] Update `quickstart.md` with final documentation
+- [ ] T031 Optimize thumbnail loading using `IsolateProcessorService` for on-demand generation
 - [ ] T032 Verify all `const` widget optimizations per Flutter constitution
-- [ ] T033 [P] Add integration test to verify SC-002 (100% persistence) and SC-004 (Renaming performance) in `ui/test/integration/asset_persistence_test.dart`
+- [ ] T033 [P] Add integration test for asset persistence (SC-002) and performance (SC-001, SC-004) in `ui/test/integration/asset_performance_test.dart`
 
 ---
 
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
-- **Phase 1 & 2**: MUST be completed first.
+- **Phase 1 & 2**: MUST be completed first (Setup & Foundation).
 - **Phase 3 & 4**: Can be worked on in parallel once Phase 2 is done.
-- **Phase 5**: Depends on Phase 4 (needs the Asset Registry panel to exist).
+- **Phase 5**: Depends on Phase 4 (needs the Asset Registry panel widget).
 - **Phase 6**: Depends on Phase 2 & 4.
 - **Phase 7**: Depends on Phase 4 & 6.
 
 ### Parallel Opportunities
-- T008 and T009 (Testing) can run alongside T004-T007.
-- US1 (T010-T012) can be implemented while US3 logic (T015) is being developed.
-- Grid/List view widgets (T025, T026) can be built in parallel.
+- Foundational testing (T008-T010) can run alongside core service development.
+- VWB Entry (US1) can be implemented while Asset Import (US3) logic is being built.
+- Layout widgets in US4 can be built in parallel.
 
 ---
 
 ## Implementation Strategy
 
 ### MVP First (User Story 1 & 3)
-1. Setup dependencies and core `AssetStorageService`.
+1. Setup dependencies and the `IsolateProcessorService` for safety.
 2. Set VWB as default view.
 3. Implement basic Asset Registry with Drag & Drop.
-4. **Validation**: Can I open the app and drop an image?
 
 ### Incremental Delivery
-1. Add Side Panel management (US2).
-2. Add Renaming and ID mapping (US5) to ensure safety.
-3. Add Layout switcher and Polish (US4).
+1. Add Sidebar expansion/collapse management (US2).
+2. Add Renaming and ID mapping (US5).
+3. Add Layout switcher and Reconciliation (US4).
 
 ---
 
 ## Notes
-- `AssetStorageService` is the source of truth for all ID-to-Path mapping.
-- The `watcher` package will trigger `AssetViewModel` updates automatically for external OS changes.
+- `IsolateProcessorService` is the mandatory bottleneck for any operation > 16ms (Image resizing, JSON parsing).
+- `AssetStorageService` uses the Isolate service for all persistence and metadata updates.
 - Ensure all Flutter UI code follows the decomposition and Provider standards from the project constitution.
