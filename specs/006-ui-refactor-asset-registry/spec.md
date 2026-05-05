@@ -64,6 +64,20 @@ The user wants to switch between different layouts (Grid, List) to better find a
 1. **Given** the Asset Registry contains several items, **When** the user selects "Grid View", **Then** assets are shown as a grid of thumbnail previews.
 2. **Given** the Asset Registry contains several items, **When** the user selects "List View", **Then** assets are shown in a vertical list with a small preview and the filename.
 
+---
+
+### User Story 5 - Asset Renaming (Priority: P2)
+
+The user wants to rename assets to give them more descriptive names without breaking existing workflows that reference them.
+
+**Why this priority**: Improves maintainability of large asset libraries and workflows.
+
+**Independent Test**: Rename an asset in the UI and verify the filename on disk changes, while a workflow using that asset still functions correctly.
+
+**Acceptance Scenarios**:
+
+1. **Given** an asset named "IMG_01.png" is used in a workflow, **When** the user renames it to "Start_Button.png" in the Asset Registry, **Then** the file on disk is renamed, and the workflow still correctly identifies and uses the asset via its internal ID.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -75,22 +89,45 @@ The user wants to switch between different layouts (Grid, List) to better find a
 - **FR-005**: Dropped files MUST be persisted (copied) into the local assets storage directory.
 - **FR-006**: The Asset Registry MUST provide a layout switcher for "Grid" and "List" views.
 - **FR-007**: The "List" view MUST display the image thumbnail preview alongside the filename.
+- **FR-008**: The system MUST allow users to delete assets from the registry after a confirmation prompt, which removes the file from the local storage.
+- **FR-009**: The system MUST automatically create the local asset storage directory on startup if it does not already exist.
+- **FR-010**: The system MUST assign a unique internal ID to every asset upon creation/import.
+- **FR-011**: The system MUST use the unique internal ID to reference assets within workflows (VWB).
+- **FR-012**: The system MUST allow users to rename assets in the UI, which triggers a rename of the corresponding file on disk while preserving the internal ID.
+- **FR-013**: The system MUST detect if an asset's file is missing on disk and display a "Missing" status/icon in the Asset Registry.
+- **FR-014**: The system MUST allow users to either remove missing asset entries or re-link them to a new file, maintaining the internal ID.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Asset**: Represents a visual pattern or reference image used in automation. Key attributes include filename, local path, and thumbnail preview.
+- **Asset**: Represents a visual pattern or reference image used in automation.
+    - **ID**: Internal unique identifier (UUID/string).
+    - **Filename**: User-facing name and disk filename.
+    - **Path**: Absolute or relative path to the file.
+    - **Thumbnail**: Cached or generated preview of the image.
+    - **Status**: Current state of the asset (e.g., Available, Missing).
 
 ## Success Criteria *(mandatory)*
+
+## Clarifications
+
+### Session 2026-05-05
+- Q: How should the system handle a situation where a user drops an image with a filename that already exists in the local storage? → A: Prompt the user to Overwrite, Rename, or Skip.
+- Q: Should users be able to delete assets directly from the Asset Registry UI, and what is the expected behavior? → A: Direct Deletion with confirmation.
+- Q: What should happen if the designated asset storage directory does not exist when the application starts? → A: Create the directory silently if it's missing.
+- Q: Should users be able to rename existing assets within the Asset Registry UI? → A: Yes, rename directly in UI. Renaming must not break functionality (use internal unique ID for references).
+- Q: If a user manually renames or deletes an asset file directly in the OS file explorer, how should the system reconcile the internal ID mapping? → A: Mark as "Missing" in UI.
 
 ### Measurable Outcomes
 
 - **SC-001**: Users can drag and drop an asset and see it reflected in the registry in under 500ms.
 - **SC-002**: 100% of image files added via drag-and-drop are correctly persisted to the local file system.
 - **SC-003**: UI transitions (collapsing panels, switching layouts) are smooth and occur without visible lag.
+- **SC-004**: Renaming an asset takes effect on disk and in UI in under 200ms without breaking workflow references.
 
 ## Assumptions
 
 - [Asset storage location]: Assets are stored in a standard subfolder within the application's data directory (e.g., `~/Documents/Sikulight/Assets`).
 - [Supported formats]: Initially only PNG and JPG are supported for assets.
-- [Duplicate handling]: Dropping a file with an existing name will overwrite the existing asset (default behavior).
-- [File System Monitoring]: The app uses a file watcher to automatically update the registry if files are changed externally in the local directory.
+- [Duplicate handling]: If a dropped file's name conflicts with an existing asset, the system MUST prompt the user to Overwrite, Rename, or Skip.
+- [File System Monitoring]: The app uses a file watcher to detect changes; if a file is removed externally, the entry remains in the registry with a "Missing" status.
+- [ID Mapping]: A small metadata file (e.g., `.assets.json`) is maintained in the asset directory to map internal IDs to filenames and other metadata.
