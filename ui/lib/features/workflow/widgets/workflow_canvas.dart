@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ui/features/assets/models/asset.dart';
+import 'package:ui/features/tasks/task_command.dart';
+import 'package:uuid/uuid.dart';
 import 'package:vyuh_node_flow/vyuh_node_flow.dart' as vnf;
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 import 'package:ui/features/workflow/models/workflow_models.dart' as models;
@@ -19,19 +22,48 @@ class WorkflowCanvas extends StatelessWidget {
     final engine = Provider.of<WorkflowEngine>(context);
     final viewModel = Provider.of<WorkflowViewModel>(context);
 
-    return vnf.NodeFlowEditor<models.NodeData, dynamic>(
-      controller: viewModel.controller,
-      theme: vnf.NodeFlowTheme.light,
-      connectionStyleBuilder: (connection, sourceNode, targetNode) {
-        return vnf.ConnectionStyles.bezier;
+    return DragTarget<Object>(
+      onWillAcceptWithDetails: (details) => details.data is Asset,
+      onAcceptWithDetails: (details) {
+        final asset = details.data as Asset;
+        final renderBox = context.findRenderObject() as RenderBox;
+        final localOffset = renderBox.globalToLocal(details.offset);
+
+        // Add an Asset Node (VdaActionNode with CLICK by default)
+        final node = models.VdaActionNode(
+          id: const Uuid().v4(),
+          position: localOffset,
+          assetId: asset.id,
+          command: TaskCommand(
+            name: 'Click ${asset.filename}',
+            referenceImagePath: asset.path,
+            profile: const TaskProfile(
+              mode: TaskMode.standard,
+              standardAction: StandardAction.click,
+              confidenceThreshold: 0.8,
+              timeoutSeconds: 30,
+            ),
+          ),
+        );
+        viewModel.addNode(node);
       },
-      nodeBuilder: (context, node) {
-        final isActive = engine.activeNodeId == node.id;
-        final executionCount = engine.nodeExecutionCounts[node.id] ?? 0;
-        return _NodeWidget(
-          nodeData: node.data,
-          isActive: isActive,
-          executionCount: executionCount,
+      builder: (context, candidateData, rejectedData) {
+        return vnf.NodeFlowEditor<models.NodeData, dynamic>(
+          key: const ValueKey('workflow_editor'),
+          controller: viewModel.controller,
+          theme: vnf.NodeFlowTheme.light,
+          connectionStyleBuilder: (connection, sourceNode, targetNode) {
+            return vnf.ConnectionStyles.bezier;
+          },
+          nodeBuilder: (context, node) {
+            final isActive = engine.activeNodeId == node.id;
+            final executionCount = engine.nodeExecutionCounts[node.id] ?? 0;
+            return _NodeWidget(
+              nodeData: node.data,
+              isActive: isActive,
+              executionCount: executionCount,
+            );
+          },
         );
       },
     );
@@ -67,6 +99,8 @@ class _NodeWidget extends StatelessWidget {
         ? assetViewModel.assets.where((a) => a.id == assetId).firstOrNull
         : null;
 
+    final isActionNode = nodeData is models.VdaActionNode;
+
     return Stack(
       children: [
         Container(
@@ -98,13 +132,26 @@ class _NodeWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             spacing: 8,
             children: [
-              Text(
-                nodeData.type.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white70,
+              if (!isActionNode)
+                Text(
+                  nodeData.type.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                  ),
                 ),
-              ),
+              if (nodeData is models.VdaActionNode)
+                Text(
+                  (nodeData as models.VdaActionNode)
+                      .command
+                      .profile
+                      .standardAction
+                      .value,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               if (asset != null)
                 FutureBuilder<String>(
                   future: assetViewModel.getThumbnailPath(asset),
@@ -116,7 +163,7 @@ class _NodeWidget extends StatelessWidget {
                           File(snapshot.data!),
                           width: _imageSize,
                           height: _imageSize,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.fill,
                         ),
                       );
                     }

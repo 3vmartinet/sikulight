@@ -24,8 +24,8 @@ void main() {
       name: 'Test Task',
       referenceImagePath: 'path/to/image.png',
       profile: TaskProfile(
-        mode: 'STANDARD',
-        standardAction: 'CLICK',
+        mode: TaskMode.standard,
+        standardAction: StandardAction.click,
         confidenceThreshold: 0.8,
         timeoutSeconds: 30,
       ),

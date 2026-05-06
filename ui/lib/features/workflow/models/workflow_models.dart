@@ -2,23 +2,42 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:ui/features/tasks/task_command.dart';
 
+class PortData extends Equatable {
+  final String id;
+  final String name;
+
+  const PortData({required this.id, required this.name});
+
+  @override
+  List<Object?> get props => [id, name];
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+
+  factory PortData.fromJson(Map<String, dynamic> json) => PortData(
+    id: json['id'] as String,
+    name: json['name'] as String,
+  );
+}
+
 sealed class NodeData extends Equatable {
   final String id;
   final Offset position;
+  final List<PortData> inputs;
 
-  const NodeData({required this.id, required this.position});
+  const NodeData({required this.id, required this.position, this.inputs = const []});
 
-  NodeData copyWith({Offset? position});
+  NodeData copyWith({Offset? position, List<PortData>? inputs});
 
   String get type;
 
   @override
-  List<Object?> get props => [id, position];
+  List<Object?> get props => [id, position, inputs];
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type,
     'position': {'x': position.dx, 'y': position.dy},
+    'inputs': inputs.map((p) => p.toJson()).toList(),
     ...extraToJson(),
   };
 
@@ -50,16 +69,20 @@ sealed class NodeData extends Equatable {
       (positionJson['x'] as num).toDouble(),
       (positionJson['y'] as num).toDouble(),
     );
+    final inputs = (json['inputs'] as List<dynamic>?)
+        ?.map((p) => PortData.fromJson(p as Map<String, dynamic>))
+        .toList() ?? [];
 
     switch (type) {
       case 'start':
-        return StartNode(id: id, position: position);
+        return StartNode(id: id, position: position, inputs: inputs);
       case 'end':
-        return EndNode(id: id, position: position);
+        return EndNode(id: id, position: position, inputs: inputs);
       case 'vda_action':
         return VdaActionNode(
           id: id,
           position: position,
+          inputs: inputs,
           command: TaskCommand.fromJson(
             json['command'] as Map<String, dynamic>,
           ),
@@ -70,6 +93,7 @@ sealed class NodeData extends Equatable {
         return VisualCheckNode(
           id: id,
           position: position,
+          inputs: inputs,
           assetId: json['assetId'] as String,
           confidenceThreshold: (json['confidenceThreshold'] as num).toDouble(),
           timeoutSeconds: json['timeoutSeconds'] as int,
@@ -78,12 +102,14 @@ sealed class NodeData extends Equatable {
         return ExistNode(
           id: id,
           position: position,
+          inputs: inputs,
           assetId: json['assetId'] as String,
         );
       case 'branch':
         return BranchNode(
           id: id,
           position: position,
+          inputs: inputs,
           conditionType: ConditionType.values.byName(
             json['conditionType'] as String,
           ),
@@ -93,6 +119,7 @@ sealed class NodeData extends Equatable {
         return LoopNode(
           id: id,
           position: position,
+          inputs: inputs,
           loopType: LoopType.values.byName(json['loopType'] as String),
           maxIterations: json['maxIterations'] as int,
         );
@@ -100,6 +127,7 @@ sealed class NodeData extends Equatable {
         return VariableNode(
           id: id,
           position: position,
+          inputs: inputs,
           variableName: json['variableName'] as String,
           operation: VariableOperation.values.byName(
             json['operation'] as String,
@@ -110,6 +138,7 @@ sealed class NodeData extends Equatable {
         return WaitNode(
           id: id,
           position: position,
+          inputs: inputs,
           durationSeconds: json['durationSeconds'] as int,
         );
       default:
@@ -119,11 +148,11 @@ sealed class NodeData extends Equatable {
 }
 
 class StartNode extends NodeData {
-  const StartNode({required super.id, required super.position});
+  const StartNode({required super.id, required super.position, super.inputs});
 
   @override
-  NodeData copyWith({Offset? position}) =>
-      StartNode(id: id, position: position ?? this.position);
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) =>
+      StartNode(id: id, position: position ?? this.position, inputs: inputs ?? this.inputs);
 
   @override
   String get type => 'start';
@@ -133,11 +162,11 @@ class StartNode extends NodeData {
 }
 
 class EndNode extends NodeData {
-  const EndNode({required super.id, required super.position});
+  const EndNode({required super.id, required super.position, super.inputs});
 
   @override
-  NodeData copyWith({Offset? position}) =>
-      EndNode(id: id, position: position ?? this.position);
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) =>
+      EndNode(id: id, position: position ?? this.position, inputs: inputs ?? this.inputs);
 
   @override
   String get type => 'end';
@@ -155,16 +184,24 @@ class VdaActionNode extends NodeData {
     required super.id,
     required super.position,
     required this.command,
+    super.inputs,
     this.timeoutOverride,
     this.assetId,
   });
 
   @override
-  NodeData copyWith({Offset? position, String? assetId}) => VdaActionNode(
+  NodeData copyWith({
+    Offset? position,
+    List<PortData>? inputs,
+    String? assetId,
+    TaskCommand? command,
+    int? timeoutOverride,
+  }) => VdaActionNode(
     id: id,
     position: position ?? this.position,
-    command: command,
-    timeoutOverride: timeoutOverride,
+    inputs: inputs ?? this.inputs,
+    command: command ?? this.command,
+    timeoutOverride: timeoutOverride ?? this.timeoutOverride,
     assetId: assetId ?? this.assetId,
   );
 
@@ -190,15 +227,17 @@ class VisualCheckNode extends NodeData {
   const VisualCheckNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.assetId,
     this.confidenceThreshold = 0.8,
     this.timeoutSeconds = 30,
   });
 
   @override
-  NodeData copyWith({Offset? position, String? assetId}) => VisualCheckNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs, String? assetId}) => VisualCheckNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     assetId: assetId ?? this.assetId,
     confidenceThreshold: confidenceThreshold,
     timeoutSeconds: timeoutSeconds,
@@ -232,14 +271,16 @@ class BranchNode extends NodeData {
   const BranchNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.conditionType,
     required this.outcomes,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => BranchNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) => BranchNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     conditionType: conditionType,
     outcomes: outcomes,
   );
@@ -266,14 +307,16 @@ class LoopNode extends NodeData {
   const LoopNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.loopType,
     this.maxIterations = 100,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => LoopNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) => LoopNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     loopType: loopType,
     maxIterations: maxIterations,
   );
@@ -301,15 +344,17 @@ class VariableNode extends NodeData {
   const VariableNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.variableName,
     required this.operation,
     required this.value,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => VariableNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) => VariableNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     variableName: variableName,
     operation: operation,
     value: value,
@@ -335,13 +380,15 @@ class WaitNode extends NodeData {
   const WaitNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.durationSeconds,
   });
 
   @override
-  NodeData copyWith({Offset? position}) => WaitNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs}) => WaitNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     durationSeconds: durationSeconds,
   );
 
@@ -361,13 +408,15 @@ class ExistNode extends NodeData {
   const ExistNode({
     required super.id,
     required super.position,
+    super.inputs,
     required this.assetId,
   });
 
   @override
-  NodeData copyWith({Offset? position, String? assetId}) => ExistNode(
+  NodeData copyWith({Offset? position, List<PortData>? inputs, String? assetId}) => ExistNode(
     id: id,
     position: position ?? this.position,
+    inputs: inputs ?? this.inputs,
     assetId: assetId ?? this.assetId,
   );
 

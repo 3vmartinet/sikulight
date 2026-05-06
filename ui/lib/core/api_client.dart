@@ -26,7 +26,9 @@ class ApiClient {
       body: jsonEncode(task.toJson()),
     );
     if (response.statusCode == 200) {
-      return ExecutionResult.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      return ExecutionResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     } else {
       throw Exception('Failed to execute task: ${response.body}');
     }
@@ -39,7 +41,9 @@ class ApiClient {
       body: jsonEncode(task.toJson()),
     );
     if (response.statusCode == 200) {
-      return ExecutionResult.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      return ExecutionResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     } else {
       throw Exception('Failed to check task: ${response.body}');
     }

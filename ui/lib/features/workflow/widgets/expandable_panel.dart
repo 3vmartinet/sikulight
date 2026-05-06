@@ -51,7 +51,7 @@ class _PanelTitle extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           border: Border(
             bottom: BorderSide(color: Theme.of(context).dividerColor),
           ),

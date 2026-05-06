@@ -6,6 +6,7 @@ from uuid import UUID
 class EngineStatus(str, Enum):
     IDLE = "IDLE"
     BUSY = "BUSY"
+    RUNNING = "RUNNING"
     ERROR = "ERROR"
 
 class EngineStatusModel(BaseModel):

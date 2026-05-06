@@ -1,8 +1,46 @@
 import 'package:equatable/equatable.dart';
 
+enum StandardAction {
+  click('CLICK'),
+  doubleClick('DOUBLE_CLICK'),
+  rightClick('RIGHT_CLICK'),
+  hover('HOVER'),
+  middleClick('MIDDLE_CLICK'),
+  scroll('SCROLL'),
+  none('NONE');
+
+  final String value;
+  const StandardAction(this.value);
+
+  static StandardAction fromString(String value) {
+    final normalized = value.toUpperCase().trim();
+    return StandardAction.values.firstWhere(
+      (e) => e.value == normalized,
+      orElse: () => StandardAction.click,
+    );
+  }
+}
+
+enum TaskMode {
+  standard('STANDARD'),
+  delegated('DELEGATED'),
+  exist('EXIST');
+
+  final String value;
+  const TaskMode(this.value);
+
+  static TaskMode fromString(String value) {
+    final normalized = value.toUpperCase().trim();
+    return TaskMode.values.firstWhere(
+      (e) => e.value == normalized,
+      orElse: () => TaskMode.standard,
+    );
+  }
+}
+
 class TaskProfile extends Equatable {
-  final String mode;
-  final String standardAction;
+  final TaskMode mode;
+  final StandardAction standardAction;
   final double confidenceThreshold;
   final int timeoutSeconds;
 
@@ -22,8 +60,10 @@ class TaskProfile extends Equatable {
 
   factory TaskProfile.fromJson(Map<String, dynamic> json) {
     return TaskProfile(
-      mode: json['mode'] as String,
-      standardAction: json['standard_action'] as String,
+      mode: TaskMode.fromString(json['mode'] as String),
+      standardAction: StandardAction.fromString(
+        json['standard_action'] as String,
+      ),
       confidenceThreshold: (json['confidence_threshold'] as num).toDouble(),
       timeoutSeconds: json['timeout_seconds'] as int,
       scrollMagnitude: json['scroll_magnitude'] as int?,
@@ -34,8 +74,8 @@ class TaskProfile extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
-      'mode': mode,
-      'standard_action': standardAction,
+      'mode': mode.value,
+      'standard_action': standardAction.value,
       'confidence_threshold': confidenceThreshold,
       'timeout_seconds': timeoutSeconds,
       if (scrollMagnitude != null) 'scroll_magnitude': scrollMagnitude,

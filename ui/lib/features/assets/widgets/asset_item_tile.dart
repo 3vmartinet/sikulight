@@ -47,10 +47,22 @@ class _AssetItemTileState extends State<AssetItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isGridView) {
-      return _buildGridItem(context);
-    }
-    return _buildListItem(context);
+    final tile = widget.isGridView
+        ? _buildGridItem(context)
+        : _buildListItem(context);
+
+    return Draggable<Asset>(
+      data: widget.asset,
+      feedback: Material(
+        elevation: 4,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: tile,
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.5, child: tile),
+      child: tile,
+    );
   }
 
   Widget _buildListItem(BuildContext context) {
@@ -156,7 +168,7 @@ class _Thumbnail extends StatelessWidget {
       future: context.read<AssetViewModel>().getThumbnailPath(asset),
       builder: (context, snapshot) {
         if (snapshot.hasData && File(snapshot.data!).existsSync()) {
-          return Image.file(File(snapshot.data!), fit: BoxFit.cover);
+          return Image.file(File(snapshot.data!), fit: BoxFit.fitHeight);
         }
         return const Icon(Icons.image);
       },

@@ -131,7 +131,7 @@ class _PersistedCommandsList extends StatelessWidget {
               ),
             ),
             title: Text(command.name),
-            subtitle: Text(command.profile.standardAction),
+            subtitle: Text(command.profile.standardAction.value),
             trailing: IconButton(
               icon: const Icon(Icons.play_arrow),
               onPressed: () => context.read<TaskProvider>().runTask(command),

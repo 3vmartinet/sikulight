@@ -29,7 +29,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
   late final TextEditingController _xController;
   late final TextEditingController _yController;
   late final TextEditingController _scrollController;
-  late String _selectedAction;
+  late StandardAction _selectedAction;
   bool _isCaptured = false;
   Timer? _timer;
 
@@ -41,7 +41,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
     _pathController = TextEditingController(
       text: task?.referenceImagePath ?? '',
     );
-    _selectedAction = task?.profile.standardAction ?? 'CLICK';
+    _selectedAction = task?.profile.standardAction ?? StandardAction.click;
     _scrollController = TextEditingController(
       text: task?.profile.scrollMagnitude?.toString() ?? '0',
     );
@@ -61,7 +61,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
   void _startContinuousCapture() {
     Map<String, int>? lastPos;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (mounted && !_isCaptured && _selectedAction == 'SCROLL') {
+      if (mounted && !_isCaptured && _selectedAction == StandardAction.scroll) {
         try {
           final pos = await ApiClient().getCursorPosition();
           if (mounted && !_isCaptured) {
@@ -150,7 +150,7 @@ class _TaskCreateSheetState extends State<TaskCreateSheet> {
       name: _nameController.text,
       referenceImagePath: _pathController.text,
       profile: TaskProfile(
-        mode: 'STANDARD',
+        mode: TaskMode.standard,
         standardAction: _selectedAction,
         confidenceThreshold: 0.8,
         timeoutSeconds: 30,
@@ -222,8 +222,8 @@ class _TaskFormFields extends StatefulWidget {
   final TextEditingController xController;
   final TextEditingController yController;
   final TextEditingController scrollController;
-  final String selectedAction;
-  final ValueChanged<String?> onActionChanged;
+  final StandardAction selectedAction;
+  final ValueChanged<StandardAction?> onActionChanged;
   final bool isCaptured;
 
   const _TaskFormFields({
@@ -244,7 +244,7 @@ class _TaskFormFields extends StatefulWidget {
 class _TaskFormFieldsState extends State<_TaskFormFields> {
   @override
   Widget build(BuildContext context) {
-    final isScroll = widget.selectedAction == 'SCROLL';
+    final isScroll = widget.selectedAction == StandardAction.scroll;
     return Column(
       children: [
         TextField(
@@ -258,22 +258,14 @@ class _TaskFormFieldsState extends State<_TaskFormFields> {
               labelText: 'Reference Image Path',
             ),
           ),
-        DropdownButtonFormField<String>(
+        DropdownButtonFormField<StandardAction>(
           initialValue: widget.selectedAction,
-          items: const [
-            DropdownMenuItem(value: 'CLICK', child: Text('CLICK')),
-            DropdownMenuItem(
-              value: 'DOUBLE_CLICK',
-              child: Text('DOUBLE_CLICK'),
-            ),
-            DropdownMenuItem(value: 'RIGHT_CLICK', child: Text('RIGHT_CLICK')),
-            DropdownMenuItem(value: 'HOVER', child: Text('HOVER')),
-            DropdownMenuItem(
-              value: 'MIDDLE_CLICK',
-              child: Text('MIDDLE_CLICK'),
-            ),
-            DropdownMenuItem(value: 'SCROLL', child: Text('SCROLL')),
-          ],
+          items: StandardAction.values.map((action) {
+            return DropdownMenuItem(
+              value: action,
+              child: Text(action.value),
+            );
+          }).toList(),
           onChanged: widget.onActionChanged,
           decoration: const InputDecoration(labelText: 'Action'),
         ),

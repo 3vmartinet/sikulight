@@ -22,7 +22,7 @@ class CommandRegistryPanel extends StatelessWidget {
               final command = taskProvider.persistedCommands[index];
               return ListTile(
                 title: Text(command.name),
-                subtitle: Text(command.profile.standardAction),
+                subtitle: Text(command.profile.standardAction.value),
                 trailing: const Icon(Icons.add),
                 onTap: () {
                   final node = VdaActionNode(

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ui/core/api_client.dart';
+import 'package:ui/features/tasks/task_command.dart';
 import 'package:vyuh_node_flow/vyuh_node_flow.dart' as vnf;
 import 'package:ui/features/workflow/models/workflow_models.dart' as models;
 import 'package:ui/features/workflow/services/workflow_engine.dart';
@@ -143,15 +144,20 @@ class WorkflowViewModel extends ChangeNotifier {
 
     final List<vnf.Port> ports = [];
 
-    // Inputs
-    if (data is! models.StartNode) {
+    // Persisted inputs or default one
+    final inputPorts = data.inputs.isEmpty 
+      ? [const models.PortData(id: 'in', name: 'In')] 
+      : data.inputs;
+      
+    for (final port in inputPorts) {
       ports.add(
         vnf.Port(
-          id: 'in',
-          name: 'In',
+          id: port.id,
+          name: port.name,
           type: vnf.PortType.input,
           position: vnf.PortPosition.left,
-          offset: const Offset(0, 30),
+          offset: Offset(0, 30.0 + (ports.where((p) => p.type == vnf.PortType.input).length * 20.0)),
+          maxConnections: 10,
         ),
       );
     }
@@ -248,11 +254,15 @@ class WorkflowViewModel extends ChangeNotifier {
   Future<void> runWorkflow() async {
     final assets = await _assetStorage.loadAssets();
     final assetMap = {for (var a in assets) a.id: a.path};
+    final assetNameMap = {for (var a in assets) a.id: a.filename};
 
     await _persistence.saveDraft(currentWorkflow);
     await _apiClient.hideApp();
     try {
-      await _engine.run(currentWorkflow, assetMap: assetMap);
+      await _engine.run(currentWorkflow, assetMap: assetMap, assetNameMap: assetNameMap);
+    } catch (e) {
+      debugPrint('Workflow execution failed: $e');
+      _engine.stop();
     } finally {
       await _apiClient.showApp();
     }
@@ -268,6 +278,135 @@ class WorkflowViewModel extends ChangeNotifier {
 
   void redo() {
     debugPrint('Redo called');
+  }
+
+  void updateNodeAction(String nodeId, StandardAction action) {
+    final node = controller.getNode(nodeId);
+    if (node != null && node.data is models.VdaActionNode) {
+      final oldData = node.data as models.VdaActionNode;
+      final newData = oldData.copyWith(
+        command: TaskCommand(
+          name: oldData.command.name,
+          referenceImagePath: oldData.command.referenceImagePath,
+          profile: TaskProfile(
+            mode: oldData.command.profile.mode,
+            standardAction: action,
+            confidenceThreshold: oldData.command.profile.confidenceThreshold,
+            timeoutSeconds: oldData.command.profile.timeoutSeconds,
+            scrollMagnitude: oldData.command.profile.scrollMagnitude,
+            x: oldData.command.profile.x,
+            y: oldData.command.profile.y,
+          ),
+        ),
+      );
+
+      controller.addNode(
+        vnf.Node<models.NodeData>(
+          id: node.id,
+          type: node.type,
+          position: node.position.value,
+          data: newData,
+          ports: node.ports.toList(),
+        ),
+      );
+
+      notifyListeners();
+    }
+  }
+
+  void addInputPort(String nodeId) {
+    final node = controller.getNode(nodeId);
+    if (node == null) return;
+
+    final newPort = vnf.Port(
+      id: const Uuid().v4(),
+      name: 'In',
+      type: vnf.PortType.input,
+      position: vnf.PortPosition.left,
+      offset: Offset(0, 30.0 + (node.ports.where((p) => p.type == vnf.PortType.input).length * 20.0)),
+      maxConnections: 10,
+    );
+
+    // Update node's persisted input ports
+    final newPortData = models.PortData(id: newPort.id, name: newPort.name);
+    final newData = node.data.copyWith(inputs: [...node.data.inputs, newPortData]);
+
+    controller.addNode(
+      vnf.Node<models.NodeData>(
+        id: node.id,
+        type: node.type,
+        position: node.position.value,
+        data: newData,
+        ports: [...node.ports, newPort],
+      ),
+    );
+    notifyListeners();
+  }
+
+  void removeInputPort(String nodeId, String portId) {
+    final node = controller.getNode(nodeId);
+    if (node == null) return;
+
+    final inputPorts = node.ports.where((p) => p.type == vnf.PortType.input).toList();
+    if (inputPorts.length <= 1) return;
+
+    // Remove connections attached to this port
+    final connectionsToRemove = controller.connections.where((c) => c.targetNodeId == nodeId && c.targetPortId == portId).toList();
+    for (final conn in connectionsToRemove) {
+      controller.removeConnection(conn.id);
+    }
+
+    // Update node's persisted input ports
+    final newData = node.data.copyWith(inputs: node.data.inputs.where((p) => p.id != portId).toList());
+
+    controller.addNode(
+      vnf.Node<models.NodeData>(
+        id: node.id,
+        type: node.type,
+        position: node.position.value,
+        data: newData,
+        ports: node.ports.where((p) => p.id != portId).toList(),
+      ),
+    );
+    controller.selectNode(nodeId);
+    notifyListeners();
+  }
+
+  void updateNodeScrollMagnitude(String nodeId, int magnitude) {
+    final node = controller.getNode(nodeId);
+    if (node != null && node.data is models.VdaActionNode) {
+      final oldData = node.data as models.VdaActionNode;
+      final newData = oldData.copyWith(
+        command: TaskCommand(
+          name: oldData.command.name,
+          referenceImagePath: oldData.command.referenceImagePath,
+          profile: TaskProfile(
+            mode: oldData.command.profile.mode,
+            standardAction: oldData.command.profile.standardAction,
+            confidenceThreshold: oldData.command.profile.confidenceThreshold,
+            timeoutSeconds: oldData.command.profile.timeoutSeconds,
+            scrollMagnitude: magnitude,
+            x: oldData.command.profile.x,
+            y: oldData.command.profile.y,
+          ),
+        ),
+      );
+
+      // Re-add node with updated data
+      controller.addNode(
+        vnf.Node<models.NodeData>(
+          id: node.id,
+          type: node.type,
+          position: node.position.value,
+          data: newData,
+          ports: node.ports.toList(),
+        ),
+      );
+      
+      // Explicitly restore selection
+      controller.selectNode(nodeId);
+      notifyListeners();
+    }
   }
 
   void updateWaitDuration(String nodeId, int duration) {

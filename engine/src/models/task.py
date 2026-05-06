@@ -7,6 +7,7 @@ from datetime import datetime
 class InteractionMode(str, Enum):
     STANDARD = "STANDARD"
     DELEGATED = "DELEGATED"
+    EXIST = "EXIST"
 
 class StandardAction(str, Enum):
     CLICK = "CLICK"
@@ -15,6 +16,7 @@ class StandardAction(str, Enum):
     HOVER = "HOVER"
     MIDDLE_CLICK = "MIDDLE_CLICK"
     SCROLL = "SCROLL"
+    NONE = "NONE"
 
 class InteractionProfile(BaseModel):
     mode: InteractionMode

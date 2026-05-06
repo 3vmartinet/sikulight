@@ -11,6 +11,7 @@ engine_status = EngineStatusModel(status=EngineStatus.IDLE)
 async def get_status():
     return engine_status
 
+from engine.src.core.logger import logger
 from engine.src.core.capture import capture_screen
 from engine.src.core.recognition import find_template
 from engine.src.core.input import simulate_click, simulate_hover, simulate_scroll, get_cursor_position
@@ -62,7 +63,7 @@ async def execute_task(task: AutomationTask):
                 elif task.profile.standard_action == StandardAction.MIDDLE_CLICK:
                     simulate_click(x, y, button='middle')
                 elif task.profile.standard_action == StandardAction.SCROLL:
-                    simulate_hover(task.profile.x or 0, task.profile.y or 0)
+                    simulate_hover(x, y)
                     simulate_scroll(task.profile.scroll_magnitude or 10)
                 
                 execution_details = {
@@ -102,6 +103,8 @@ async def execute_task(task: AutomationTask):
             return {"success": False, "message": "Element not found", "execution_details": None}
             
     except Exception as e:
+        import traceback
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
         engine_status.status = EngineStatus.ERROR
         engine_status.last_error = str(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -115,19 +118,27 @@ async def check_element(task: AutomationTask):
         engine_status.status = EngineStatus.RUNNING
         engine_status.current_task_id = task.id
         
+        logger.info(f"Checking for element: {task.reference_image_path} with threshold: {task.profile.confidence_threshold}")
+        
         # Take screenshot and find element
         screenshot = capture_screen()
-        x, y = find_element(screenshot, task.reference_image_path, task.profile.confidence_threshold)
+        # Use find_template from core.recognition as it is the correct function
+        result = find_template(screenshot, task.reference_image_path, task.profile.confidence_threshold)
         
         engine_status.status = EngineStatus.IDLE
         engine_status.current_task_id = None
         
-        if x is not None and y is not None:
+        if result:
+            x, y = result
+            logger.info(f"Element found at ({x}, {y})")
             return {"success": True, "message": "Element found", "coordinates": [x, y]}
         else:
+            logger.info("Element not found")
             return {"success": False, "message": "Element not found"}
             
     except Exception as e:
+        import traceback
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
         engine_status.status = EngineStatus.ERROR
         engine_status.last_error = str(e)
         raise HTTPException(status_code=500, detail=str(e))
