@@ -4,8 +4,11 @@ import 'package:ui/core/constants.dart';
 import 'package:ui/features/assets/widgets/asset_registry_panel.dart';
 import 'package:ui/features/workflow/view_models/sidebar_view_model.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
+import 'package:ui/features/workflow/view_models/workspace_view_model.dart';
 import 'package:ui/features/workflow/widgets/workflow_canvas.dart';
 import 'package:ui/features/workflow/widgets/workflow_toolbar.dart';
+import 'package:ui/features/workflow/widgets/workflow_tab_bar.dart';
+import 'package:ui/features/workflow/widgets/empty_workspace_view.dart';
 import 'package:ui/features/workflow/widgets/command_registry_panel.dart';
 import 'package:ui/features/workflow/widgets/node_parameter_panel.dart';
 import 'package:ui/features/workflow/widgets/expandable_panel.dart';
@@ -30,26 +33,50 @@ class _WorkflowScreenBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<WorkflowViewModel>();
+    final workspaceVM = context.watch<WorkspaceViewModel>();
     final sidebarViewModel = context.watch<SidebarViewModel>();
     
+    final activeTab = workspaceVM.activeTab;
+
+    return Scaffold(
+      appBar: const WorkflowToolbar(),
+      body: Column(
+        children: [
+          const WorkflowTabBar(),
+          Expanded(
+            child: activeTab != null
+                ? ChangeNotifierProvider.value(
+                    value: activeTab.viewModel,
+                    child: _WorkspaceContent(sidebarViewModel: sidebarViewModel),
+                  )
+                : const EmptyWorkspaceView(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkspaceContent extends StatelessWidget {
+  final SidebarViewModel sidebarViewModel;
+
+  const _WorkspaceContent({required this.sidebarViewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.watch<WorkflowViewModel>();
     final selectedNode = viewModel.controller.nodes.values
         .where((node) => node.isSelected)
         .firstOrNull;
     final selectedNodeId = selectedNode?.id ?? '';
 
-    return Scaffold(
-      appBar: const WorkflowToolbar(),
-      body: SizedBox.expand(
-        child: Row(
-          children: [
-            _Sidebar(viewModel: sidebarViewModel),
-            const Expanded(child: WorkflowCanvas()),
-            if (selectedNodeId.isNotEmpty)
-              NodeParameterPanel(nodeId: selectedNodeId),
-          ],
-        ),
-      ),
+    return Row(
+      children: [
+        _Sidebar(viewModel: sidebarViewModel),
+        const Expanded(child: WorkflowCanvas()),
+        if (selectedNodeId.isNotEmpty)
+          NodeParameterPanel(nodeId: selectedNodeId),
+      ],
     );
   }
 }

@@ -20,18 +20,65 @@ class WorkflowViewModel extends ChangeNotifier {
 
   String _workflowId = const Uuid().v4();
   String _workflowName = 'New Workflow';
+  String? _filePath;
+  bool _isModified = false;
 
   WorkflowViewModel({
     required WorkflowEngine engine,
     required WorkflowPersistence persistence,
     required ApiClient apiClient,
     required AssetStorageService assetStorage,
+    String? initialFilePath,
   }) : _engine = engine,
        _persistence = persistence,
        _apiClient = apiClient,
-       _assetStorage = assetStorage {
+       _assetStorage = assetStorage,
+       _filePath = initialFilePath {
     controller = vnf.NodeFlowController<models.NodeData, dynamic>();
     _setupController();
+    if (_filePath != null) {
+      loadFile(File(_filePath!));
+    }
+  }
+
+  String? get filePath => _filePath;
+  bool get isModified => _isModified;
+
+  Future<void> loadFile(File file) async {
+    final workflow = await _persistence.importWorkflow(file);
+    if (workflow != null) {
+      _workflowId = workflow.id;
+      _workflowName = workflow.name;
+      _filePath = file.path;
+      controller.clearGraph();
+      
+      // Load nodes
+      for (final node in workflow.nodes) {
+        addNode(node);
+      }
+
+      // Recreate connections
+      for (final conn in workflow.connections) {
+        controller.addConnection(
+          vnf.Connection(
+            id: const Uuid().v4(),
+            sourceNodeId: conn.sourceNodeId,
+            sourcePortId: conn.sourcePortId,
+            targetNodeId: conn.targetNodeId,
+            targetPortId: conn.targetPortId,
+          ),
+        );
+      }
+      _isModified = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveToFile() async {
+    if (_filePath == null) return;
+    await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
+    _isModified = false;
+    notifyListeners();
   }
 
   Future<void> loadDraft() async {
@@ -99,6 +146,9 @@ class WorkflowViewModel extends ChangeNotifier {
     if (_isUpdating) return;
     _isUpdating = true;
 
+    // IV. Observability: Logging
+    debugPrint('Workflow $_workflowId graph changed');
+
     // Update node positions before saving
     for (final node in controller.nodes.values) {
       final updatedData = node.data.copyWith(position: node.position.value);
@@ -112,6 +162,7 @@ class WorkflowViewModel extends ChangeNotifier {
         ),
       );
     }
+    _isModified = true;
     _persistence.saveDraft(currentWorkflow);
     notifyListeners();
 
@@ -495,15 +546,6 @@ class WorkflowViewModel extends ChangeNotifier {
   }
 
   Future<void> importWorkflow(File file) async {
-    final workflow = await _persistence.importWorkflow(file);
-    if (workflow != null) {
-      _workflowId = workflow.id;
-      _workflowName = workflow.name;
-      controller.clearGraph();
-      for (final node in workflow.nodes) {
-        addNode(node);
-      }
-      notifyListeners();
-    }
+    await loadFile(file);
   }
 }

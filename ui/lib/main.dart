@@ -8,13 +8,15 @@ import 'package:ui/features/tasks/task_provider.dart';
 import 'package:ui/features/workflow/workflow_screen.dart';
 import 'package:ui/features/workflow/services/workflow_engine.dart';
 import 'package:ui/features/workflow/services/workflow_persistence.dart';
-import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
+import 'package:ui/features/workflow/services/session_persistence_service.dart';
+import 'package:ui/features/workflow/view_models/workspace_view_model.dart';
 import 'package:ui/features/workflow/view_models/sidebar_view_model.dart';
 
 void main() {
   final apiClient = ApiClient();
   final isolateProcessor = IsolateProcessorService();
   final assetStorage = AssetStorageService(isolateProcessor: isolateProcessor);
+  final sessionService = SessionPersistenceService();
 
   runApp(
     MultiProvider(
@@ -25,13 +27,15 @@ void main() {
         ChangeNotifierProvider(create: (_) => SidebarViewModel()),
         ChangeNotifierProvider(create: (_) => WorkflowEngine(apiClient: apiClient)),
         Provider(create: (_) => WorkflowPersistence()),
+        Provider.value(value: sessionService),
         ChangeNotifierProvider(
-          create: (context) => WorkflowViewModel(
-            apiClient: apiClient,
+          create: (context) => WorkspaceViewModel(
+            sessionService: sessionService,
             engine: context.read<WorkflowEngine>(),
             persistence: context.read<WorkflowPersistence>(),
+            apiClient: apiClient,
             assetStorage: assetStorage,
-          )..loadDraft(), // FR-015
+          )..restoreSession(),
         ),
       ],
       child: const MyApp(),
