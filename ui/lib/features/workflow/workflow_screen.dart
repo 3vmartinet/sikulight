@@ -38,22 +38,25 @@ class _WorkflowScreenBody extends StatelessWidget {
     
     final activeTab = workspaceVM.activeTab;
 
-    return Scaffold(
-      appBar: const WorkflowToolbar(),
-      body: Column(
-        children: [
-          const WorkflowTabBar(),
-          Expanded(
-            child: activeTab != null
-                ? ChangeNotifierProvider.value(
-                    value: activeTab.viewModel,
+    return activeTab != null
+        ? ChangeNotifierProvider.value(
+            value: activeTab.viewModel,
+            child: Scaffold(
+              appBar: const WorkflowToolbar(),
+              body: Column(
+                children: [
+                  const WorkflowTabBar(),
+                  Expanded(
                     child: _WorkspaceContent(sidebarViewModel: sidebarViewModel),
-                  )
-                : const EmptyWorkspaceView(),
-          ),
-        ],
-      ),
-    );
+                  ),
+                ],
+              ),
+            ),
+          )
+        : Scaffold(
+            appBar: AppBar(title: const Text('Visual Workflow Builder')),
+            body: const EmptyWorkspaceView(),
+          );
   }
 }
 

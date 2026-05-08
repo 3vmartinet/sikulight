@@ -38,6 +38,13 @@ class WorkspaceViewModel extends ChangeNotifier {
   TabMetadata? get activeTab => _activeTabIndex >= 0 && _activeTabIndex < _tabs.length ? _tabs[_activeTabIndex] : null;
 
   Future<void> openWorkflow(String filePath) async {
+    // Basic validation
+    if (!filePath.startsWith('new://') && 
+        !(filePath.endsWith('.swflow') || filePath.endsWith('.json'))) {
+      debugPrint('Invalid file type: $filePath');
+      return;
+    }
+
     final existingIndex = _tabs.indexWhere((t) => t.filePath == filePath);
     if (existingIndex != -1) {
       selectTab(existingIndex);
@@ -54,7 +61,7 @@ class WorkspaceViewModel extends ChangeNotifier {
 
     final newTab = TabMetadata(
       id: const Uuid().v4(),
-      name: p.basenameWithoutExtension(filePath),
+      name: filePath.contains('new://') ? 'New Workflow' : p.basenameWithoutExtension(filePath),
       filePath: filePath,
       viewModel: workflowVM,
     );
@@ -80,8 +87,10 @@ class WorkspaceViewModel extends ChangeNotifier {
     if (index == -1) return;
 
     final tab = _tabs[index];
-    // FR-008: Auto-save on close
-    await tab.viewModel.saveToFile();
+    // FR-008: Auto-save on close (only if it has a file path)
+    if (tab.filePath != null && File(tab.filePath!).existsSync()) {
+      await tab.viewModel.saveToFile();
+    }
 
     _tabs.removeAt(index);
     _focusHistory.remove(index);

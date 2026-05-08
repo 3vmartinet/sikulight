@@ -15,7 +15,7 @@ class EmptyWorkspaceView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.work_outline, size: 64, color: theme.colorScheme.primary.withOpacity(0.5)),
+          Icon(Icons.work_outline, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text('No workflow open', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 24),
@@ -23,7 +23,7 @@ class EmptyWorkspaceView extends StatelessWidget {
             onPressed: () async {
               final result = await FilePicker.pickFiles(
                 type: FileType.custom,
-                allowedExtensions: ['swflow'],
+                allowedExtensions: ['swflow', 'json'],
               );
               if (result != null && result.files.single.path != null) {
                 await workspaceVM.openWorkflow(result.files.single.path!);
@@ -31,6 +31,16 @@ class EmptyWorkspaceView extends StatelessWidget {
             },
             icon: const Icon(Icons.folder_open),
             label: const Text('Open Workflow'),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () {
+              // Creating a new workflow tab by passing a unique identifier
+              // that mimics a new workflow.
+              workspaceVM.openWorkflow('new://workflow/${DateTime.now().millisecondsSinceEpoch}');
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('New Workflow'),
           ),
           const SizedBox(height: 24),
           if (workspaceVM.tabs.isEmpty) // Logic for Recently Open (FR-013)

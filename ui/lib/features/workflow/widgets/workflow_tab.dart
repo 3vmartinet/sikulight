@@ -68,44 +68,47 @@ class WorkflowTab extends StatelessWidget {
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? theme.colorScheme.surface : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+          color: isActive ? theme.colorScheme.surface : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
           border: Border(
             right: BorderSide(color: theme.dividerColor),
             bottom: isActive ? BorderSide.none : BorderSide(color: theme.dividerColor),
           ),
         ),
-        constraints: const BoxConstraints(minWidth: 100, maxWidth: 200),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Reorder Handle
+            ReorderableDragStartListener(
+              index: context.read<WorkspaceViewModel>().tabs.indexOf(tab),
+              child: Icon(Icons.drag_indicator, size: 16, color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 4),
+            // Modified State Indicator
             if (isModified)
               Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Icon(
-                  Icons.circle,
-                  size: 8,
-                  color: theme.colorScheme.primary,
-                ),
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(Icons.circle, size: 8, color: theme.colorScheme.primary),
               ),
             Flexible(
-              child: Text(
-                tab.name,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              fit: FlexFit.loose,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 150),
+                child: Text(
+                  tab.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             GestureDetector(
               onTap: () => workspaceVM.closeTab(tab.id),
-              child: Icon(
-                Icons.close,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              child: Icon(Icons.close, size: 16, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),

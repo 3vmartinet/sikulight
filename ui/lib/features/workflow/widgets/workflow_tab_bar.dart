@@ -16,11 +16,12 @@ class WorkflowTabBar extends StatelessWidget {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
+        buildDefaultDragHandles: false,
         itemCount: workspaceVM.tabs.length,
         onReorder: workspaceVM.reorderTabs,
         proxyDecorator: (child, index, animation) {
