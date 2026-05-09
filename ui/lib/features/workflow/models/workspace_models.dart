@@ -3,11 +3,13 @@ import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
 class WorkspaceSession {
   final String? activeWorkflowPath;
   final List<String> openFilePaths;
+  final List<String> recentFilePaths;
   final DateTime lastUpdated;
 
   WorkspaceSession({
     this.activeWorkflowPath,
     required this.openFilePaths,
+    this.recentFilePaths = const [],
     required this.lastUpdated,
   });
 
@@ -15,6 +17,7 @@ class WorkspaceSession {
     return {
       'active_workflow_path': activeWorkflowPath,
       'open_file_paths': openFilePaths,
+      'recent_file_paths': recentFilePaths,
       'last_updated': lastUpdated.toIso8601String(),
     };
   }
@@ -23,6 +26,10 @@ class WorkspaceSession {
     return WorkspaceSession(
       activeWorkflowPath: json['active_workflow_path'] as String?,
       openFilePaths: (json['open_file_paths'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      recentFilePaths: (json['recent_file_paths'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
@@ -35,11 +42,13 @@ class WorkspaceSession {
   WorkspaceSession copyWith({
     String? activeWorkflowPath,
     List<String>? openFilePaths,
+    List<String>? recentFilePaths,
     DateTime? lastUpdated,
   }) {
     return WorkspaceSession(
       activeWorkflowPath: activeWorkflowPath ?? this.activeWorkflowPath,
       openFilePaths: openFilePaths ?? this.openFilePaths,
+      recentFilePaths: recentFilePaths ?? this.recentFilePaths,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }

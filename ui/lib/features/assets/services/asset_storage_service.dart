@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ui/core/constants.dart';
 import 'package:ui/core/utils/isolate_processor_service.dart';
@@ -56,7 +57,10 @@ class AssetStorageService {
 
   Future<List<Asset>> loadAssets() async {
     final file = await _metadataFile;
-    if (!await file.exists()) return [];
+    if (!await file.exists()) {
+      debugPrint('Asset metadata file not found at ${file.path}');
+      return [];
+    }
 
     try {
       final content = await file.readAsString();
@@ -66,18 +70,26 @@ class AssetStorageService {
           .map((j) => Asset.fromJson(jsonDecode(jsonEncode(j))))
           .toList();
     } catch (e) {
-      // Corrupted metadata handling (FR-016)
+      debugPrint('Error loading assets from ${file.path}: $e');
       return [];
     }
   }
 
   Future<void> saveAssets(List<Asset> assets) async {
-    final file = await _metadataFile;
-    final list = assets.map((a) => a.toJson()).toList();
-    await file.writeAsString(jsonEncode({'version': 1, 'assets': list}));
+    try {
+      final file = await _metadataFile;
+      final list = assets.map((a) => a.toJson()).toList();
+      await file.writeAsString(jsonEncode({'version': 1, 'assets': list}));
+      debugPrint('Saved ${assets.length} assets to metadata.');
+    } catch (e) {
+      debugPrint('Error saving assets metadata: $e');
+    }
   }
 
-  Future<Asset?> importAsset(String sourcePath, {String? targetFilename}) async {
+  Future<Asset?> importAsset(
+    String sourcePath, {
+    String? targetFilename,
+  }) async {
     final dir = await _assetsDirectory;
     final sourceFile = File(sourcePath);
     final filename = targetFilename ?? sourceFile.uri.pathSegments.last;

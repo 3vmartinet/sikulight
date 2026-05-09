@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ui/features/workflow/services/workflow_persistence.dart';
 import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
+import 'package:ui/features/workflow/view_models/workspace_view_model.dart';
 import 'package:ui/features/workflow/services/workflow_engine.dart';
+import 'package:ui/features/workflow/models/workflow_models.dart' as models;
 
 class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
   const WorkflowToolbar({super.key});
@@ -18,7 +20,8 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
     final engine = context.watch<WorkflowEngine>();
 
     return AppBar(
-      title: const Text('Visual Workflow Builder'),
+      elevation: 8,
+      leading: const Icon(Icons.show_chart),
       actions: [
         _ElapsedTimeDisplay(engine: engine),
         const VerticalDivider(),
@@ -35,10 +38,19 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
         const VerticalDivider(),
         IconButton(
           icon: const Icon(Icons.play_arrow, color: Colors.green),
-          onPressed: engine.status == WorkflowStatus.running
+          onPressed:
+              (engine.status == WorkflowStatus.running ||
+                  !viewModel.controller.nodes.values.any(
+                    (n) => n.data is models.StartNode,
+                  ))
               ? null
               : viewModel.runWorkflow,
-          tooltip: 'Run Workflow',
+          tooltip:
+              !viewModel.controller.nodes.values.any(
+                (n) => n.data is models.StartNode,
+              )
+              ? 'Add a Start Node to execute workflow'
+              : 'Run Workflow',
         ),
         IconButton(
           icon: const Icon(Icons.stop, color: Colors.red),
@@ -50,71 +62,52 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
         const VerticalDivider(),
         IconButton(
           icon: const Icon(Icons.save),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Workflow draft saved.')),
+          onPressed: () async {
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            await viewModel.saveToFile();
+            final path = viewModel.resolvedPath ?? 'internal draft';
+            scaffoldMessenger.showSnackBar(
+              SnackBar(content: Text('Saved: $path')),
             );
           },
-          tooltip: 'Save Draft',
+          tooltip: 'Save',
         ),
         IconButton(
-          icon: const Icon(Icons.file_download),
+          icon: const Icon(Icons.file_open),
           onPressed: () async {
-            final fileNameController = TextEditingController();
-            final persistence = context.read<WorkflowPersistence>();
-            final result = await showDialog<String>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Import Workflow'),
-                content: TextField(
-                  controller: fileNameController,
-                  decoration: const InputDecoration(hintText: 'Enter filename (e.g., exported_workflow.swflow)'),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, fileNameController.text),
-                    child: const Text('Import'),
-                  ),
-                ],
-              ),
+            final workspaceVM = context.read<WorkspaceViewModel>();
+            final result = await FilePicker.pickFiles(
+              type: FileType.custom,
+              allowedExtensions: ['swflow', 'json'],
             );
 
-            if (result != null && result.isNotEmpty) {
-              final dir = await persistence.localDirectory;
-              await viewModel.importWorkflow(File('${dir.path}/$result'));
+            if (result != null && result.files.single.path != null) {
+              await workspaceVM.openWorkflow(result.files.single.path!);
             }
           },
           tooltip: 'Import',
         ),
         IconButton(
-          icon: const Icon(Icons.file_upload),
+          icon: const Icon(Icons.save_alt),
           onPressed: () async {
             final scaffoldMessenger = ScaffoldMessenger.of(context);
-            final workflowPersistence = context.read<WorkflowPersistence>();
-            
-            await viewModel.exportWorkflow();
-            final dir = await workflowPersistence.localDirectory;
-            
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text('Exported as ${WorkflowPersistence.exportedFileName} to: ${dir.path}'),
-                duration: const Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'Open Folder',
-                  onPressed: () async {
-                    if (Platform.isMacOS) {
-                      await Process.run('open', [dir.path]);
-                    } else if (Platform.isLinux) {
-                      await Process.run('xdg-open', [dir.path]);
-                    }
-                  },
-                ),
-              ),
+
+            final String? outputFile = await FilePicker.saveFile(
+              dialogTitle: 'Export Workflow',
+              fileName: 'exported_workflow.swflow',
+              type: FileType.custom,
+              allowedExtensions: ['swflow'],
             );
+
+            if (outputFile != null) {
+              await viewModel.exportWorkflow(File(outputFile));
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text('Workflow exported to: $outputFile'),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           },
           tooltip: 'Export',
         ),

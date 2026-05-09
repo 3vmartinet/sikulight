@@ -1,3 +1,3 @@
 <!-- SPECKIT START -->
-- Current Plan: `specs/006-ui-refactor-asset-registry/plan.md`
+- Current Plan: `specs/008-multi-tab-workflows/plan.md`
 <!-- SPECKIT END -->

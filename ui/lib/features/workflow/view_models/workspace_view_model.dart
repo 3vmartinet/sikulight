@@ -20,6 +20,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   final List<TabMetadata> _tabs = [];
   int _activeTabIndex = -1;
   final List<int> _focusHistory = [];
+  final List<String> _recentFilePaths = [];
 
   WorkspaceViewModel({
     required SessionPersistenceService sessionService,
@@ -36,8 +37,15 @@ class WorkspaceViewModel extends ChangeNotifier {
   List<TabMetadata> get tabs => List.unmodifiable(_tabs);
   int get activeTabIndex => _activeTabIndex;
   TabMetadata? get activeTab => _activeTabIndex >= 0 && _activeTabIndex < _tabs.length ? _tabs[_activeTabIndex] : null;
+  List<String> get recentFilePaths => List.unmodifiable(_recentFilePaths);
 
   Future<void> openWorkflow(String filePath) async {
+    // Explicitly block internal configuration files
+    if (filePath.endsWith('session_history.json')) {
+      debugPrint('Blocked attempt to open internal config: $filePath');
+      return;
+    }
+
     // Basic validation
     if (!filePath.startsWith('new://') && 
         !(filePath.endsWith('.swflow') || filePath.endsWith('.json'))) {
@@ -51,6 +59,7 @@ class WorkspaceViewModel extends ChangeNotifier {
       return;
     }
 
+    final isNewWorkflow = filePath.startsWith('new://');
     final workflowVM = WorkflowViewModel(
       engine: _engine,
       persistence: _persistence,
@@ -61,13 +70,42 @@ class WorkspaceViewModel extends ChangeNotifier {
 
     final newTab = TabMetadata(
       id: const Uuid().v4(),
-      name: filePath.contains('new://') ? 'New Workflow' : p.basenameWithoutExtension(filePath),
+      name: isNewWorkflow ? 'New Workflow' : p.basenameWithoutExtension(filePath),
       filePath: filePath,
       viewModel: workflowVM,
     );
 
     _tabs.add(newTab);
+    debugPrint('Added tab: $filePath. Total tabs: ${_tabs.length}');
     selectTab(_tabs.length - 1);
+
+    // Track as recent if it's a real file
+    if (!isNewWorkflow) {
+      _recentFilePaths.remove(filePath);
+      _recentFilePaths.insert(0, filePath);
+      if (_recentFilePaths.length > 10) {
+        _recentFilePaths.removeLast();
+      }
+    }
+
+    // Sync name if it's already loaded or when it loads
+    if (workflowVM.workflowName != 'New Workflow') {
+      final index = _tabs.indexOf(newTab);
+      if (index != -1) {
+        _tabs[index] = newTab.copyWith(name: workflowVM.workflowName);
+        notifyListeners();
+      }
+    }
+    
+    // Listen for name changes in the VM to keep TabMetadata in sync
+    workflowVM.addListener(() {
+      final index = _tabs.indexWhere((t) => t.id == newTab.id);
+      if (index != -1 && _tabs[index].name != workflowVM.workflowName) {
+        _tabs[index] = _tabs[index].copyWith(name: workflowVM.workflowName);
+        notifyListeners();
+      }
+    });
+
     _saveSession();
   }
 
@@ -88,7 +126,7 @@ class WorkspaceViewModel extends ChangeNotifier {
 
     final tab = _tabs[index];
     // FR-008: Auto-save on close (only if it has a file path)
-    if (tab.filePath != null && File(tab.filePath!).existsSync()) {
+    if (tab.filePath != null && !tab.filePath!.startsWith('new://') && File(tab.filePath!).existsSync()) {
       await tab.viewModel.saveToFile();
     }
 
@@ -118,6 +156,26 @@ class WorkspaceViewModel extends ChangeNotifier {
     _saveSession();
   }
 
+  void renameWorkflow(String id, String newName) {
+    final index = _tabs.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    final tab = _tabs[index];
+    tab.viewModel.renameWorkflow(newName);
+    
+    // Update the tab metadata with the new name
+    _tabs[index] = tab.copyWith(name: newName);
+    
+    notifyListeners();
+    _saveSession();
+  }
+
+  void removeRecentFile(String path) {
+    _recentFilePaths.remove(path);
+    notifyListeners();
+    _saveSession();
+  }
+
   void reorderTabs(int oldIndex, int newIndex) {
     if (oldIndex < newIndex) {
       newIndex -= 1;
@@ -142,22 +200,55 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> restoreSession() async {
     final session = await _sessionService.loadSession();
-    if (session == null) return;
+    if (session == null) {
+      debugPrint('No session found to restore.');
+      return;
+    }
 
-    // Restore tabs (but only active one for now as per Q1: A)
+    debugPrint('Restoring session. Open paths: ${session.openFilePaths}');
+    
+    // Restore recent files list
+    _recentFilePaths.clear();
+    _recentFilePaths.addAll(session.recentFilePaths);
+
+    // Restore all tabs (FR-013)
+    for (final path in session.openFilePaths) {
+      if (path.startsWith('new://')) {
+        debugPrint('Restoring new workflow: $path');
+        await openWorkflow(path);
+      } else {
+        final file = File(path);
+        if (await file.exists()) {
+          debugPrint('Restoring workflow file: $path');
+          await openWorkflow(path);
+        } else {
+          debugPrint('Failed to restore workflow file: $path (file not found)');
+        }
+      }
+    }
+
+    // Restore active focus
     if (session.activeWorkflowPath != null) {
-      final file = File(session.activeWorkflowPath!);
-      if (await file.exists()) {
-        await openWorkflow(file.path);
+      final index = _tabs.indexWhere((t) => t.filePath == session.activeWorkflowPath);
+      if (index != -1) {
+        selectTab(index);
       }
     }
     notifyListeners();
   }
 
+  void saveSession() {
+    _saveSession();
+  }
+
   void _saveSession() {
+    final activePath = activeTab?.filePath;
+    final paths = _tabs.map((t) => t.filePath).whereType<String>().toList();
+    debugPrint('Saving session with activePath: $activePath, openPaths: $paths');
     final session = WorkspaceSession(
-      activeWorkflowPath: activeTab?.filePath,
-      openFilePaths: _tabs.map((t) => t.filePath).whereType<String>().toList(),
+      activeWorkflowPath: activePath,
+      openFilePaths: paths,
+      recentFilePaths: _recentFilePaths,
       lastUpdated: DateTime.now(),
     );
     _sessionService.saveSession(session);

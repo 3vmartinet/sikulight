@@ -19,35 +19,45 @@ class WorkflowTabBar extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
-      child: ReorderableListView.builder(
-        scrollDirection: Axis.horizontal,
-        buildDefaultDragHandles: false,
-        itemCount: workspaceVM.tabs.length,
-        onReorder: workspaceVM.reorderTabs,
-        proxyDecorator: (child, index, animation) {
-          return AnimatedBuilder(
-            animation: animation,
-            builder: (context, child) {
-              return Material(
-                elevation: 4,
-                color: Colors.transparent,
-                child: child,
-              );
-            },
-            child: child,
-          );
-        },
-        itemBuilder: (context, index) {
-          final tab = workspaceVM.tabs[index];
-          return ChangeNotifierProvider.value(
-            key: ValueKey(tab.id),
-            value: tab.viewModel,
-            child: WorkflowTab(
-              tab: tab,
-              isActive: workspaceVM.activeTabIndex == index,
+      child: Row(
+        children: [
+          Expanded(
+            child: ReorderableListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: workspaceVM.tabs.length,
+              onReorder: workspaceVM.reorderTabs,
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) {
+                return Material(
+                  color: Colors.transparent,
+                  child: child,
+                );
+              },
+              itemBuilder: (context, index) {
+                final tab = workspaceVM.tabs[index];
+                return ChangeNotifierProvider.value(
+                  key: ValueKey(tab.id),
+                  value: tab.viewModel,
+                  child: WorkflowTab(
+                    tab: tab,
+                    isActive: workspaceVM.activeTabIndex == index,
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+          InkWell(
+            onTap: () => workspaceVM.openWorkflow('new://workflow/${DateTime.now().millisecondsSinceEpoch}'),
+            child: Container(
+              width: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: theme.dividerColor)),
+              ),
+              child: const Icon(Icons.add, size: 20),
+            ),
+          ),
+        ],
       ),
     );
   }

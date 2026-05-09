@@ -48,8 +48,10 @@ class WorkflowCanvas extends StatelessWidget {
         viewModel.addNode(node);
       },
       builder: (context, candidateData, rejectedData) {
+        // Ensure controller is initialized by waiting for the next frame if needed,
+        // or ensure WorkflowViewModel provides a valid controller.
         return vnf.NodeFlowEditor<models.NodeData, dynamic>(
-          key: const ValueKey('workflow_editor'),
+          key: ValueKey('workflow_editor_${viewModel.controller.hashCode}'),
           controller: viewModel.controller,
           theme: vnf.NodeFlowTheme.light,
           connectionStyleBuilder: (connection, sourceNode, targetNode) {

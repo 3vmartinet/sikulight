@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:ui/core/api_client.dart';
 import 'package:ui/features/tasks/task_command.dart';
 import 'package:vyuh_node_flow/vyuh_node_flow.dart' as vnf;
@@ -21,6 +23,7 @@ class WorkflowViewModel extends ChangeNotifier {
   String _workflowId = const Uuid().v4();
   String _workflowName = 'New Workflow';
   String? _filePath;
+  String? _resolvedPath;
   bool _isModified = false;
 
   WorkflowViewModel({
@@ -34,27 +37,76 @@ class WorkflowViewModel extends ChangeNotifier {
        _apiClient = apiClient,
        _assetStorage = assetStorage,
        _filePath = initialFilePath {
+    // Set initial name based on file path if available
+    if (_filePath != null && !_filePath!.startsWith('new://')) {
+      _workflowName = p.basenameWithoutExtension(_filePath!);
+    }
+
     controller = vnf.NodeFlowController<models.NodeData, dynamic>();
     _setupController();
+    
     if (_filePath != null) {
-      loadFile(File(_filePath!));
+      if (_filePath!.startsWith('new://')) {
+        // FR-013: Extract ID from the path to maintain stability across restarts
+        final uri = Uri.parse(_filePath!);
+        final id = uri.pathSegments.last;
+        if (id.isNotEmpty) {
+          _workflowId = id;
+        }
+        loadDraft();
+      } else {
+        loadFile(File(_filePath!));
+      }
+    } else {
+      loadDraft();
     }
+    unawaited(_resolvePath());
   }
 
   String? get filePath => _filePath;
+  String? get resolvedPath => _resolvedPath;
   bool get isModified => _isModified;
+
+  Future<void> _resolvePath() async {
+    _resolvedPath = await _persistence.getAbsoluteFilePath(_workflowId, filePath: _filePath);
+    notifyListeners();
+  }
+
+  String get workflowName => _workflowName;
+
+  void renameWorkflow(String newName) {
+    if (newName.trim().isEmpty) return;
+    _workflowName = newName.trim();
+    _saveAutomatically();
+    notifyListeners();
+  }
 
   Future<void> loadFile(File file) async {
     final workflow = await _persistence.importWorkflow(file);
     if (workflow != null) {
-      _workflowId = workflow.id;
+      // Use a new ID for the imported workflow to avoid draft conflicts
+      // but keep the name. 
+      _workflowId = const Uuid().v4();
       _workflowName = workflow.name;
       _filePath = file.path;
+      unawaited(_resolvePath());
+      
+      // Sync the controller with the imported workflow data
+      _isUpdating = true;
       controller.clearGraph();
       
       // Load nodes
-      for (final node in workflow.nodes) {
-        addNode(node);
+      for (final nodeData in workflow.nodes) {
+        final ports = _generatePortsForNode(nodeData);
+        controller.addNode(
+          vnf.Node<models.NodeData>(
+            id: nodeData.id,
+            type: nodeData.type,
+            position: nodeData.position,
+            data: nodeData,
+            ports: ports,
+          ),
+        );
       }
 
       // Recreate connections
@@ -69,28 +121,57 @@ class WorkflowViewModel extends ChangeNotifier {
           ),
         );
       }
+      _isUpdating = false;
       _isModified = false;
       notifyListeners();
+    } else {
+      // If load fails, ensure at least a start node exists if graph is empty
+      if (controller.nodes.isEmpty) {
+        _isUpdating = true;
+        addNode(
+          models.StartNode(
+            id: const Uuid().v4(),
+            position: const Offset(100, 100),
+          ),
+        );
+        _isUpdating = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> saveToFile() async {
-    if (_filePath == null) return;
-    await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
+    if (_filePath != null && !_filePath!.startsWith('new://')) {
+      await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
+    } else {
+      await _persistence.saveDraft(currentWorkflow);
+    }
     _isModified = false;
     notifyListeners();
   }
 
   Future<void> loadDraft() async {
+    _isUpdating = true;
     controller.clearGraph();
-    final draft = await _persistence.loadDraft();
+    
+    final draft = await _persistence.loadDraft(_workflowId);
+    
     if (draft != null) {
-      _workflowId = draft.id;
       _workflowName = draft.name;
-
+      _isModified = false;
+      
       // Load nodes
-      for (final node in draft.nodes) {
-        addNode(node);
+      for (final nodeData in draft.nodes) {
+        final ports = _generatePortsForNode(nodeData);
+        controller.addNode(
+          vnf.Node<models.NodeData>(
+            id: nodeData.id,
+            type: nodeData.type,
+            position: nodeData.position,
+            data: nodeData,
+            ports: ports,
+          ),
+        );
       }
 
       // Recreate connections
@@ -105,8 +186,8 @@ class WorkflowViewModel extends ChangeNotifier {
           ),
         );
       }
-      notifyListeners();
     } else {
+      // Create empty workflow with start node
       addNode(
         models.StartNode(
           id: const Uuid().v4(),
@@ -114,6 +195,103 @@ class WorkflowViewModel extends ChangeNotifier {
         ),
       );
     }
+    _isUpdating = false;
+    notifyListeners();
+  }
+
+  List<vnf.Port> _generatePortsForNode(models.NodeData data) {
+    final List<vnf.Port> ports = [];
+
+    // 1. Input Ports
+    final inputPorts = data.inputs.isEmpty 
+      ? [const models.PortData(id: 'in', name: 'In')] 
+      : data.inputs;
+      
+    for (final port in inputPorts) {
+      ports.add(
+        vnf.Port(
+          id: port.id,
+          name: port.name,
+          type: vnf.PortType.input,
+          position: vnf.PortPosition.left,
+          offset: Offset(0, 30.0 + (ports.where((p) => p.type == vnf.PortType.input).length * 20.0)),
+          maxConnections: 10,
+        ),
+      );
+    }
+
+    // 2. Output Ports
+    if (data is models.BranchNode) {
+      for (int i = 0; i < data.outcomes.length; i++) {
+        ports.add(
+          vnf.Port(
+            id: data.outcomes[i],
+            name: data.outcomes[i],
+            type: vnf.PortType.output,
+            position: vnf.PortPosition.right,
+            offset: Offset(0, 25.0 + (i * 20.0)),
+            maxConnections: 10,
+          ),
+        );
+      }
+    } else if (data is models.VisualCheckNode) {
+      ports.add(
+        vnf.Port(
+          id: 'Found',
+          name: 'Found',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 25),
+          maxConnections: 10,
+        ),
+      );
+      ports.add(
+        vnf.Port(
+          id: 'Not Found',
+          name: 'Not Found',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 45),
+          maxConnections: 10,
+        ),
+      );
+    } else if (data is models.ExistNode) {
+      ports.add(
+        vnf.Port(
+          id: 'Found',
+          name: 'Yes',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 25),
+          showLabel: true,
+          maxConnections: 10,
+        ),
+      );
+      ports.add(
+        vnf.Port(
+          id: 'Not Found',
+          name: 'No',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 45),
+          showLabel: true,
+          maxConnections: 10,
+        ),
+      );
+    } else if (data is! models.EndNode) {
+      ports.add(
+        vnf.Port(
+          id: 'out',
+          name: 'Out',
+          type: vnf.PortType.output,
+          position: vnf.PortPosition.right,
+          offset: const Offset(0, 30),
+          maxConnections: 10,
+        ),
+      );
+    }
+    
+    return ports;
   }
 
   void _setupController() {
@@ -149,42 +327,50 @@ class WorkflowViewModel extends ChangeNotifier {
     // IV. Observability: Logging
     debugPrint('Workflow $_workflowId graph changed');
 
-    // Update node positions before saving
-    for (final node in controller.nodes.values) {
-      final updatedData = node.data.copyWith(position: node.position.value);
-      controller.addNode(
-        vnf.Node<models.NodeData>(
-          id: node.id,
-          type: node.type,
-          position: node.position.value,
-          data: updatedData,
-          ports: node.ports.toList(),
-        ),
-      );
-    }
-    _isModified = true;
-    _persistence.saveDraft(currentWorkflow);
-    notifyListeners();
+    // Continuous auto-save
+    _saveAutomatically();
 
     _isUpdating = false;
   }
 
-  models.Workflow get currentWorkflow => models.Workflow(
-    id: _workflowId,
-    name: _workflowName,
-    nodes: controller.nodes.values.map((n) => n.data).toList(),
-    connections: controller.connections
-        .map(
-          (c) => models.ConnectionData(
-            sourceNodeId: c.sourceNodeId,
-            sourcePortId: c.sourcePortId,
-            targetNodeId: c.targetNodeId,
-            targetPortId: c.targetPortId,
-          ),
-        )
-        .toList(),
-    variables: _engine.variables,
-  );
+  Future<void> _saveAutomatically() async {
+    _isModified = true;
+    notifyListeners();
+    
+    if (_filePath != null && !_filePath!.startsWith('new://')) {
+      await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
+    } else {
+      await _persistence.saveDraft(currentWorkflow);
+    }
+    
+    _isModified = false;
+    notifyListeners();
+  }
+
+  models.Workflow get currentWorkflow {
+    // Sync node positions from controller back to NodeData before saving
+    final nodes = controller.nodes.values.map((n) {
+      return n.data.copyWith(position: n.position.value);
+    }).toList();
+    
+    debugPrint('Saving workflow $_workflowId with ${nodes.length} nodes');
+    return models.Workflow(
+      id: _workflowId,
+      name: _workflowName,
+      nodes: nodes,
+      connections: controller.connections
+          .map(
+            (c) => models.ConnectionData(
+              sourceNodeId: c.sourceNodeId,
+              sourcePortId: c.sourcePortId,
+              targetNodeId: c.targetNodeId,
+              targetPortId: c.targetPortId,
+            ),
+          )
+          .toList(),
+      variables: _engine.variables,
+    );
+  }
 
   void addNode(models.NodeData data) {
     // Prevent multiple start nodes
@@ -193,90 +379,7 @@ class WorkflowViewModel extends ChangeNotifier {
       return;
     }
 
-    final List<vnf.Port> ports = [];
-
-    // Persisted inputs or default one
-    final inputPorts = data.inputs.isEmpty 
-      ? [const models.PortData(id: 'in', name: 'In')] 
-      : data.inputs;
-      
-    for (final port in inputPorts) {
-      ports.add(
-        vnf.Port(
-          id: port.id,
-          name: port.name,
-          type: vnf.PortType.input,
-          position: vnf.PortPosition.left,
-          offset: Offset(0, 30.0 + (ports.where((p) => p.type == vnf.PortType.input).length * 20.0)),
-          maxConnections: 10,
-        ),
-      );
-    }
-
-    // Outputs
-    if (data is models.BranchNode) {
-      for (int i = 0; i < data.outcomes.length; i++) {
-        ports.add(
-          vnf.Port(
-            id: data.outcomes[i],
-            name: data.outcomes[i],
-            type: vnf.PortType.output,
-            position: vnf.PortPosition.right,
-            offset: Offset(0, 25.0 + (i * 20.0)),
-          ),
-        );
-      }
-    } else if (data is models.VisualCheckNode) {
-      ports.add(
-        vnf.Port(
-          id: 'Found',
-          name: 'Found',
-          type: vnf.PortType.output,
-          position: vnf.PortPosition.right,
-          offset: const Offset(0, 25),
-        ),
-      );
-      ports.add(
-        vnf.Port(
-          id: 'Not Found',
-          name: 'Not Found',
-          type: vnf.PortType.output,
-          position: vnf.PortPosition.right,
-          offset: const Offset(0, 45),
-        ),
-      );
-    } else if (data is models.ExistNode) {
-      ports.add(
-        vnf.Port(
-          id: 'Found',
-          name: 'Yes',
-          type: vnf.PortType.output,
-          position: vnf.PortPosition.right,
-          offset: const Offset(0, 25),
-          showLabel: true,
-        ),
-      );
-      ports.add(
-        vnf.Port(
-          id: 'Not Found',
-          name: 'No',
-          type: vnf.PortType.output,
-          position: vnf.PortPosition.right,
-          offset: const Offset(0, 45),
-          showLabel: true,
-        ),
-      );
-    } else if (data is! models.EndNode) {
-      ports.add(
-        vnf.Port(
-          id: 'out',
-          name: 'Out',
-          type: vnf.PortType.output,
-          position: vnf.PortPosition.right,
-          offset: const Offset(0, 30),
-        ),
-      );
-    }
+    final ports = _generatePortsForNode(data);
 
     controller.addNode(
       vnf.Node<models.NodeData>(
@@ -292,6 +395,7 @@ class WorkflowViewModel extends ChangeNotifier {
   void resetWorkflow() {
     _workflowId = const Uuid().v4();
     _workflowName = 'New Workflow';
+    unawaited(_resolvePath());
     controller.clearGraph();
     addNode(
       models.StartNode(
@@ -540,12 +644,8 @@ class WorkflowViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> exportWorkflow() async {
-    final targetFile = await _persistence.getExportFile();
+  Future<void> exportWorkflow([File? target]) async {
+    final targetFile = target ?? await _persistence.getExportFile();
     await _persistence.exportWorkflow(currentWorkflow, targetFile);
-  }
-
-  Future<void> importWorkflow(File file) async {
-    await loadFile(file);
   }
 }

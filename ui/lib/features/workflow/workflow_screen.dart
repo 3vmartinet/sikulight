@@ -17,9 +17,9 @@ class WorkflowScreen extends StatelessWidget {
   const WorkflowScreen({super.key});
 
   static void show(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const WorkflowScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WorkflowScreen()));
   }
 
   @override
@@ -35,7 +35,7 @@ class _WorkflowScreenBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final workspaceVM = context.watch<WorkspaceViewModel>();
     final sidebarViewModel = context.watch<SidebarViewModel>();
-    
+
     final activeTab = workspaceVM.activeTab;
 
     return activeTab != null
@@ -47,16 +47,15 @@ class _WorkflowScreenBody extends StatelessWidget {
                 children: [
                   const WorkflowTabBar(),
                   Expanded(
-                    child: _WorkspaceContent(sidebarViewModel: sidebarViewModel),
+                    child: _WorkspaceContent(
+                      sidebarViewModel: sidebarViewModel,
+                    ),
                   ),
                 ],
               ),
             ),
           )
-        : Scaffold(
-            appBar: AppBar(title: const Text('Visual Workflow Builder')),
-            body: const EmptyWorkspaceView(),
-          );
+        : Scaffold(body: const EmptyWorkspaceView());
   }
 }
 

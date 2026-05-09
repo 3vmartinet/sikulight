@@ -231,9 +231,9 @@ class MockWorkflowPersistence extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<_i10.Workflow?> loadDraft() =>
+  _i6.Future<_i10.Workflow?> loadDraft(String? workflowId) =>
       (super.noSuchMethod(
-            Invocation.method(#loadDraft, []),
+            Invocation.method(#loadDraft, [workflowId]),
             returnValue: _i6.Future<_i10.Workflow?>.value(),
           )
           as _i6.Future<_i10.Workflow?>);
