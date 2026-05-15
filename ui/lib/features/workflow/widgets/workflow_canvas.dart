@@ -23,29 +23,58 @@ class WorkflowCanvas extends StatelessWidget {
     final viewModel = Provider.of<WorkflowViewModel>(context);
 
     return DragTarget<Object>(
-      onWillAcceptWithDetails: (details) => details.data is Asset,
+      onWillAcceptWithDetails: (details) {
+        final data = details.data;
+        return data is Asset || data is TaskCommand || data is String;
+      },
       onAcceptWithDetails: (details) {
-        final asset = details.data as Asset;
+        final data = details.data;
         final renderBox = context.findRenderObject() as RenderBox;
         final localOffset = renderBox.globalToLocal(details.offset);
 
-        // Add an Asset Node (VdaActionNode with CLICK by default)
-        final node = models.VdaActionNode(
-          id: const Uuid().v4(),
-          position: localOffset,
-          assetId: asset.id,
-          command: TaskCommand(
-            name: 'Click ${asset.filename}',
-            referenceImagePath: asset.path,
-            profile: const TaskProfile(
-              mode: TaskMode.standard,
-              standardAction: StandardAction.click,
-              confidenceThreshold: 0.8,
-              timeoutSeconds: 30,
+        if (data is Asset) {
+          final node = models.VdaActionNode(
+            id: const Uuid().v4(),
+            position: localOffset,
+            assetId: data.id,
+            command: TaskCommand(
+              name: 'Click ${data.filename}',
+              referenceImagePath: data.path,
+              profile: const TaskProfile(
+                mode: TaskMode.standard,
+                standardAction: StandardAction.click,
+                confidenceThreshold: 0.8,
+                timeoutSeconds: 30,
+              ),
             ),
-          ),
-        );
-        viewModel.addNode(node);
+          );
+          viewModel.addNode(node);
+        } else if (data is TaskCommand) {
+          final node = models.VdaActionNode(
+            id: const Uuid().v4(),
+            position: localOffset,
+            command: data,
+          );
+          viewModel.addNode(node);
+        } else if (data is String) {
+          if (data == 'wait_node') {
+            viewModel.addNode(
+              models.WaitNode(
+                id: const Uuid().v4(),
+                position: localOffset,
+                durationSeconds: 5,
+              ),
+            );
+          } else if (data == 'exist_node') {
+            viewModel.addNode(
+              models.ExistNode(
+                id: const Uuid().v4(),
+                position: localOffset,
+                assetId: '',
+              ),
+            );
+          }
+        }
       },
       builder: (context, candidateData, rejectedData) {
         // Ensure controller is initialized by waiting for the next frame if needed,

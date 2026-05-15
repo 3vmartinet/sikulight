@@ -15,12 +15,13 @@ class EmptyWorkspaceView extends StatelessWidget {
     return Center(
       child: Container(
         padding: const EdgeInsets.all(48),
-        constraints: const BoxConstraints(maxWidth: 800),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Left: Actions
             Expanded(
+              flex: 2,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,6 +75,8 @@ class EmptyWorkspaceView extends StatelessWidget {
             VerticalDivider(width: 64, thickness: 1, color: theme.dividerColor),
             // Right: Recents
             Expanded(
+              flex: 3,
+
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/features/tasks/task_provider.dart';
-import 'package:ui/features/workflow/view_models/workflow_view_model.dart';
-import 'package:ui/features/workflow/models/workflow_models.dart';
-import 'package:uuid/uuid.dart';
+import 'package:ui/features/tasks/task_command.dart';
 
 class CommandRegistryPanel extends StatelessWidget {
   const CommandRegistryPanel({super.key});
@@ -11,7 +9,6 @@ class CommandRegistryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
-    final workflowViewModel = context.read<WorkflowViewModel>();
 
     return Column(
       children: [
@@ -20,61 +17,103 @@ class CommandRegistryPanel extends StatelessWidget {
             itemCount: taskProvider.persistedCommands.length,
             itemBuilder: (context, index) {
               final command = taskProvider.persistedCommands[index];
-              return ListTile(
-                title: Text(command.name),
-                subtitle: Text(command.profile.standardAction.value),
-                trailing: const Icon(Icons.add),
-                onTap: () {
-                  final node = VdaActionNode(
-                    id: const Uuid().v4(),
-                    position: const Offset(100, 100),
-                    command: command,
-                  );
-                  workflowViewModel.addNode(node);
-                },
+              return Draggable<TaskCommand>(
+                data: command,
+                feedback: Material(
+                  elevation: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: ListTile(
+                      title: Text(command.name),
+                      subtitle: Text(command.profile.standardAction.value),
+                    ),
+                  ),
+                ),
+                childWhenDragging: Opacity(
+                  opacity: 0.5,
+                  child: ListTile(
+                    title: Text(command.name),
+                    subtitle: Text(command.profile.standardAction.value),
+                    trailing: const Icon(Icons.drag_indicator),
+                  ),
+                ),
+                child: ListTile(
+                  title: Text(command.name),
+                  subtitle: Text(command.profile.standardAction.value),
+                  trailing: const Icon(Icons.drag_indicator),
+                ),
               );
             },
           ),
         ),
         const Divider(),
-        _SystemNodesList(viewModel: workflowViewModel),
+        const _SystemNodesList(),
       ],
     );
   }
 }
 
 class _SystemNodesList extends StatelessWidget {
-  final WorkflowViewModel viewModel;
-
-  const _SystemNodesList({required this.viewModel});
+  const _SystemNodesList();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ListTile(
-          title: const Text('Wait Node'),
-          leading: const Icon(Icons.timer),
-          onTap: () => viewModel.addNode(
-            WaitNode(
-              id: const Uuid().v4(),
-              position: const Offset(100, 100),
-              durationSeconds: 5,
+        Draggable<String>(
+          data: 'wait_node',
+          feedback: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: const ListTile(
+                title: Text('Wait Node'),
+                leading: Icon(Icons.timer),
+              ),
             ),
           ),
-        ),
-        ListTile(
-          title: const Text('Exist Node'),
-          leading: const Icon(Icons.visibility),
-          onTap: () => viewModel.addNode(
-            ExistNode(
-              id: const Uuid().v4(),
-              position: const Offset(100, 100),
-              assetId: '',
+          childWhenDragging: const Opacity(
+            opacity: 0.5,
+            child: ListTile(
+              title: Text('Wait Node'),
+              leading: Icon(Icons.timer),
+              trailing: Icon(Icons.drag_indicator),
             ),
+          ),
+          child: const ListTile(
+            title: Text('Wait Node'),
+            leading: Icon(Icons.timer),
+            trailing: Icon(Icons.drag_indicator),
+          ),
+        ),
+        Draggable<String>(
+          data: 'exist_node',
+          feedback: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: const ListTile(
+                title: Text('Exist Node'),
+                leading: Icon(Icons.visibility),
+              ),
+            ),
+          ),
+          childWhenDragging: const Opacity(
+            opacity: 0.5,
+            child: ListTile(
+              title: Text('Exist Node'),
+              leading: Icon(Icons.visibility),
+              trailing: Icon(Icons.drag_indicator),
+            ),
+          ),
+          child: const ListTile(
+            title: Text('Exist Node'),
+            leading: Icon(Icons.visibility),
+            trailing: Icon(Icons.drag_indicator),
           ),
         ),
       ],
     );
   }
 }
+
