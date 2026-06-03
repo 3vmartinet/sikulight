@@ -1,0 +1,42 @@
+# General / OS
+.DS_Store
+*.log
+*.swp
+*.class
+*.pyc
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.atom/
+.history
+.vscode/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+**/doc/api/
+
+# Platform Specific
+/android/app/debug
+/android/app/profile
+/android/app/release
+**/ios/Flutter/.last_build_id
+
+# Build Artifacts
+app.*.symbols
+app.*.map.json
+
+# Misc / Project Specific
+.build/
+.buildlog/
+.svn/
+.swiftpm/
+migrate_working_dir/
