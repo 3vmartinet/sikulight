@@ -42,19 +42,19 @@ void main() {
           )..restoreSession(),
         ),
       ],
-      child: const MyApp(),
+      child: const SikuliteApp(),
     ),
   );
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class SikuliteApp extends StatefulWidget {
+  const SikuliteApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<SikuliteApp> createState() => _SikuliteAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class _SikuliteAppState extends State<SikuliteApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();

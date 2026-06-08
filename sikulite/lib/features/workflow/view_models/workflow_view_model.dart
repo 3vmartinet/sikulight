@@ -668,7 +668,8 @@ class WorkflowViewModel extends ChangeNotifier {
   }
 
   Future<void> exportWorkflow([File? target]) async {
-    final targetFile = target ?? await _persistence.getExportFile();
+    final targetFile = target ??
+        await _persistence.getExportFile(fileName: '$_workflowName.swflow');
     await _persistence.exportWorkflow(currentWorkflow, targetFile);
   }
 }

@@ -22,11 +22,48 @@ class WorkflowTab extends StatelessWidget {
       (vm) => vm.resolvedPath,
     );
 
+    void showRenameDialog() {
+      final controller = TextEditingController(text: tab.name);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Rename Workflow'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'Enter new name'),
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                workspaceVM.renameWorkflow(tab.id, value);
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  workspaceVM.renameWorkflow(tab.id, controller.text);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Rename'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Tooltip(
       message: resolvedPath ?? tab.filePath ?? 'Draft: ${tab.id}',
       waitDuration: const Duration(seconds: 1),
       child: InkWell(
         onTap: () => workspaceVM.selectTab(workspaceVM.tabs.indexOf(tab)),
+        onDoubleTap: showRenameDialog,
         onSecondaryTapDown: (details) {
           final position = details.globalPosition;
           showMenu<dynamic>(
@@ -39,46 +76,7 @@ class WorkflowTab extends StatelessWidget {
             ),
             items: <PopupMenuEntry<dynamic>>[
               PopupMenuItem(
-                onTap: () {
-                  final controller = TextEditingController(text: tab.name);
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Rename Workflow'),
-                      content: TextField(
-                        controller: controller,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter new name',
-                        ),
-                        onSubmitted: (value) {
-                          if (value.trim().isNotEmpty) {
-                            workspaceVM.renameWorkflow(tab.id, value);
-                            Navigator.of(context).pop();
-                          }
-                        },
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (controller.text.trim().isNotEmpty) {
-                              workspaceVM.renameWorkflow(
-                                tab.id,
-                                controller.text,
-                              );
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          child: const Text('Rename'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                onTap: showRenameDialog,
                 child: const Row(
                   children: [
                     Icon(Icons.edit_outlined, size: 18),

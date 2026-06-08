@@ -27,9 +27,9 @@ class WorkflowPersistence {
     return file.path;
   }
 
-  Future<File> getExportFile() async {
+  Future<File> getExportFile({String? fileName}) async {
     final dir = await localDirectory;
-    return File('${dir.path}/$exportedFileName');
+    return File('${dir.path}/${fileName ?? exportedFileName}');
   }
 
   Future<void> saveDraft(Workflow workflow) async {

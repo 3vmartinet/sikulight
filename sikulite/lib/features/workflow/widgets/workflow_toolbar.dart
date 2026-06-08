@@ -95,7 +95,7 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
 
             final String? outputFile = await FilePicker.saveFile(
               dialogTitle: 'Export Workflow',
-              fileName: 'exported_workflow.swflow',
+              fileName: '${viewModel.workflowName}.swflow',
               type: FileType.custom,
               allowedExtensions: ['swflow'],
             );

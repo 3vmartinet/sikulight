@@ -24,6 +24,8 @@ void main() {
     mockAssetStorage = MockAssetStorageService();
 
     when(mockPersistence.importWorkflow(any)).thenAnswer((_) async => null);
+    when(mockPersistence.getAbsoluteFilePath(any, filePath: anyNamed('filePath')))
+        .thenAnswer((invocation) async => invocation.namedArguments[#filePath] ?? 'mock_path');
 
     workspaceVM = WorkspaceViewModel(
       sessionService: mockSessionService,
@@ -75,5 +77,33 @@ void main() {
 
     // Simulate modification if we could...
     // Since it's a real VM, we might need to trigger something that sets _isModified.
+  });
+
+  testWidgets('WorkflowTab should trigger rename dialog on double tap', (tester) async {
+    await workspaceVM.openWorkflow('/path/1.swflow');
+    final tab = workspaceVM.tabs[0];
+
+    await tester.pumpWidget(
+      createTestWidget(
+        ChangeNotifierProvider<WorkflowViewModel>.value(
+          value: tab.viewModel,
+          child: WorkflowTab(tab: tab, isActive: true),
+        ),
+      ),
+    );
+
+    // Initial state: no dialog
+    expect(find.text('Rename Workflow'), findsNothing);
+
+    // Double tap the tab (the text part)
+    final center = tester.getCenter(find.text('1'));
+    await tester.tapAt(center);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(center);
+    await tester.pumpAndSettle();
+
+    // Verify dialog is shown
+    expect(find.text('Rename Workflow'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
   });
 }

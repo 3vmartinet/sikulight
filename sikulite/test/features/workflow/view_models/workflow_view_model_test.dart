@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:sikulite/features/workflow/view_models/workflow_view_model.dart';
@@ -20,6 +21,9 @@ void main() {
     mockAssetStorage = MockAssetStorageService();
 
     when(mockPersistence.loadDraft(any)).thenAnswer((_) async => null);
+    when(mockPersistence.getAbsoluteFilePath(any, filePath: anyNamed('filePath')))
+        .thenAnswer((invocation) async => invocation.namedArguments[#filePath] ?? 'mock_path');
+    when(mockEngine.variables).thenReturn({});
   });
 
   test('WorkflowViewModel should extract ID from new:// path', () async {
@@ -62,4 +66,22 @@ void main() {
       verifyNever(mockPersistence.saveDraft(any));
     },
   );
+
+  test('WorkflowViewModel.exportWorkflow should use workflow name if no target provided', () async {
+    final viewModel = WorkflowViewModel(
+      engine: mockEngine,
+      persistence: mockPersistence,
+      apiClient: mockApiClient,
+      assetStorage: mockAssetStorage,
+    );
+
+    viewModel.renameWorkflow('My Awesome Workflow');
+
+    when(mockPersistence.getExportFile(fileName: anyNamed('fileName')))
+        .thenAnswer((_) async => File('dummy.swflow'));
+
+    await viewModel.exportWorkflow();
+
+    verify(mockPersistence.getExportFile(fileName: 'My Awesome Workflow.swflow')).called(1);
+  });
 }

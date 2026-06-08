@@ -33,6 +33,8 @@ void main() {
     mockAssetStorage = MockAssetStorageService();
 
     when(mockPersistence.importWorkflow(any)).thenAnswer((_) async => null);
+    when(mockPersistence.getAbsoluteFilePath(any, filePath: anyNamed('filePath')))
+        .thenAnswer((invocation) async => invocation.namedArguments[#filePath] ?? 'mock_path');
 
     workspaceVM = WorkspaceViewModel(
       sessionService: mockSessionService,
