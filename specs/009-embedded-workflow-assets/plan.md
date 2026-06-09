@@ -16,7 +16,7 @@ The feature introduces the `.macaque` file format (ZIP-based) as the standard st
 **Target Platform**: Desktop (macOS, Windows, Linux)
 **Project Type**: Desktop application (Flutter) + Local engine (Python)  
 **Performance Goals**: Load/Save < 2s for 10 assets  
-**Constraints**: Selective startup cleanup of `sikulite_imports`, no hard size limits on bundled assets  
+**Constraints**: Selective startup cleanup of `macaque_imports`, no hard size limits on bundled assets  
 **Scale/Scope**: Unified format for all workflows
 
 ## Constitution Check
@@ -46,7 +46,7 @@ specs/009-embedded-workflow-assets/
 ### Source Code (repository root)
 
 ```text
-sikulite/
+macaque/
 ├── lib/
 │   ├── features/
 │   │   ├── workflow/
@@ -68,7 +68,7 @@ engine/
 └── tests/
 ```
 
-**Structure Decision**: Modified existing feature modules in `sikulite/lib/features/` to handle archiving, asset isolation, and primary format transition.
+**Structure Decision**: Modified existing feature modules in `macaque/lib/features/` to handle archiving, asset isolation, and primary format transition.
 
 ## Complexity Tracking
 

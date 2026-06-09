@@ -11,8 +11,8 @@ The feature uses a unified ZIP-based container called `.macaque` for all workflo
 
 ### Technical Implementation:
 - **Unified Format**: `WorkflowPersistence` will use `.macaque` for all save/load operations.
-- **Isolation Strategy**: Every open workflow has a unique `workflowId`. Assets are extracted to `${tempDir}/sikulite_imports/${workflowId}/assets/`.
-- **Startup Cleanup**: `WorkspaceViewModel.restoreSession` will trigger a cleanup pass that deletes any directory in `sikulite_imports` whose ID is not present in the restored session's `openFilePaths`.
+- **Isolation Strategy**: Every open workflow has a unique `workflowId`. Assets are extracted to `${tempDir}/macaque_imports/${workflowId}/assets/`.
+- **Startup Cleanup**: `WorkspaceViewModel.restoreSession` will trigger a cleanup pass that deletes any directory in `macaque_imports` whose ID is not present in the restored session's `openFilePaths`.
 - **No Hard Limits**: The system will allow any total asset size, relying on Dart's `File` and `Directory` APIs to handle standard OS errors (e.g., Disk Full) gracefully.
 
 ### Alternatives Considered:

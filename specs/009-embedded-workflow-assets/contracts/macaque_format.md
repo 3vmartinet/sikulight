@@ -1,7 +1,7 @@
 # Contract: .macaque Workflow Package
 
 ## Overview
-The `.macaque` file is a ZIP-compressed archive used for sharing workflows between Sikulite instances.
+The `.macaque` file is a ZIP-compressed archive used for sharing workflows between Macaque instances.
 
 ## Structure
 

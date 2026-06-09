@@ -1,7 +1,7 @@
 # Quickstart: Embedded Workflow Assets
 
 ## Saving a Workflow
-1. Work on your workflow normally in Sikulite.
+1. Work on your workflow normally in Macaque.
 2. Click **Save** in the toolbar.
 3. The workflow is saved as a `.macaque` file. All used images are automatically bundled inside.
 

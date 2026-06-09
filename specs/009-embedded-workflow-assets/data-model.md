@@ -3,13 +3,13 @@
 ## Entities
 
 ### WorkflowPackage (.macaque)
-The primary ZIP-compressed container for Sikulite workflows.
+The primary ZIP-compressed container for Macaque workflows.
 - **workflow.json**: The serialized `Workflow` model.
 - **assets/**: A directory containing all image assets referenced by the workflow.
 
 ### IsolatedAssetStore
 A temporary local directory where assets are extracted for use during an active session.
-- **Path**: `${tempDir}/sikulite_imports/${workflowId}/assets/`
+- **Path**: `${tempDir}/macaque_imports/${workflowId}/assets/`
 - **Metadata**: Synchronized with the active `WorkflowViewModel` to track valid file references.
 - **Lifecycle**: The `workflowId` and its associated path MUST remain stable even if the workflow is renamed during the session.
 
@@ -29,5 +29,5 @@ A temporary local directory where assets are extracted for use during an active 
 3. **Closure**:
    - Delete `IsolatedAssetStore` when the tab is closed.
 4. **Startup**:
-   - Scan `sikulite_imports` directory.
+   - Scan `macaque_imports` directory.
    - Delete any sub-directory whose name does not match an active `workflowId` in the restored session.

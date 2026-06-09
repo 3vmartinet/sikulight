@@ -1,8 +1,8 @@
-# sikulite
+# macaque
 Yet another Sikuli, vibe-coded with GitHub Spec Kit.
 
 ## Portable Workflows (.macaque)
-Sikulite now uses the `.macaque` file format for portable workflows. A `.macaque` file is a ZIP-based bundle that contains:
+Macaque now uses the `.macaque` file format for portable workflows. A `.macaque` file is a ZIP-based bundle that contains:
 - The workflow configuration (JSON)
 - All referenced image assets
 

@@ -15,16 +15,16 @@
 
 ## Path Conventions
 
-- Flutter client: `sikulite/lib/`, `sikulite/test/`
+- Flutter client: `macaque/lib/`, `macaque/test/`
 - Python engine: `engine/src/`, `engine/tests/`
 
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Project initialization and basic structure
 
-- [X] T001 Verify `archive` package in `sikulite/pubspec.yaml` and run `flutter pub get`
-- [X] T002 Create directory `sikulite/lib/features/workflow/services/` for archive logic
-- [X] T003 [P] Configure structured logging for ZIP operations in `sikulite/lib/core/logger.dart`
+- [X] T001 Verify `archive` package in `macaque/pubspec.yaml` and run `flutter pub get`
+- [X] T002 Create directory `macaque/lib/features/workflow/services/` for archive logic
+- [X] T003 [P] Configure structured logging for ZIP operations in `macaque/lib/core/logger.dart`
 
 ---
 
@@ -34,9 +34,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T004 Implement `ArchiveService` skeleton in `sikulite/lib/features/workflow/services/archive_service.dart`
-- [X] T005 Create `IsolatedAssetStore` helper class for path management in `sikulite/lib/features/workflow/models/isolated_asset_store.dart`
-- [X] T006 [P] Update `AssetViewModel` to support isolated asset sources in `sikulite/lib/features/assets/view_models/asset_view_model.dart`
+- [X] T004 Implement `ArchiveService` skeleton in `macaque/lib/features/workflow/services/archive_service.dart`
+- [X] T005 Create `IsolatedAssetStore` helper class for path management in `macaque/lib/features/workflow/models/isolated_asset_store.dart`
+- [X] T006 [P] Update `AssetViewModel` to support isolated asset sources in `macaque/lib/features/assets/view_models/asset_view_model.dart`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -52,16 +52,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [X] T007 [P] [US1] Add unit tests for `.macaque` ZIP creation and extraction in `sikulite/test/features/workflow/services/archive_service_test.dart`, including a "Local Registry Integrity" scenario to verify global assets remain untouched.
+- [X] T007 [P] [US1] Add unit tests for `.macaque` ZIP creation and extraction in `macaque/test/features/workflow/services/archive_service_test.dart`, including a "Local Registry Integrity" scenario to verify global assets remain untouched.
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] Implement `ArchiveService.bundleWorkflow` bundling logic in `sikulite/lib/features/workflow/services/archive_service.dart`
-- [X] T009 [US1] Implement `ArchiveService.extractWorkflow` extraction logic in `sikulite/lib/features/workflow/services/archive_service.dart`
-- [X] T010 [US1] Implement graceful filesystem error handling and user notifications (Error Dialogs) in `sikulite/lib/features/workflow/services/archive_service.dart`, ensuring styling consistency with other system dialogs.
-- [X] T011 [US1] Refactor `WorkflowPersistence.saveWorkflow` to bundle assets into `.macaque` in `sikulite/lib/features/workflow/services/workflow_persistence.dart`
-- [X] T012 [US1] Refactor `WorkflowPersistence.loadWorkflow` to extract assets from `.macaque` in `sikulite/lib/features/workflow/services/workflow_persistence.dart`
-- [X] T013 [US1] Update `WorkflowViewModel` to manage `IsolatedAssetStore` session lifecycle and implement immediate UI updates for Tab title, Header, and Asset Registry on rename in `sikulite/lib/features/workflow/view_models/workflow_view_model.dart`
+- [X] T008 [US1] Implement `ArchiveService.bundleWorkflow` bundling logic in `macaque/lib/features/workflow/services/archive_service.dart`
+- [X] T009 [US1] Implement `ArchiveService.extractWorkflow` extraction logic in `macaque/lib/features/workflow/services/archive_service.dart`
+- [X] T010 [US1] Implement graceful filesystem error handling and user notifications (Error Dialogs) in `macaque/lib/features/workflow/services/archive_service.dart`, ensuring styling consistency with other system dialogs.
+- [X] T011 [US1] Refactor `WorkflowPersistence.saveWorkflow` to bundle assets into `.macaque` in `macaque/lib/features/workflow/services/workflow_persistence.dart`
+- [X] T012 [US1] Refactor `WorkflowPersistence.loadWorkflow` to extract assets from `.macaque` in `macaque/lib/features/workflow/services/workflow_persistence.dart`
+- [X] T013 [US1] Update `WorkflowViewModel` to manage `IsolatedAssetStore` session lifecycle and implement immediate UI updates for Tab title, Header, and Asset Registry on rename in `macaque/lib/features/workflow/view_models/workflow_view_model.dart`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -75,12 +75,12 @@
 
 ### Tests for User Story 2
 
-- [X] T014 [P] [US2] Add widget test for Asset Manager tab switching in `sikulite/test/features/assets/widgets/asset_registry_panel_test.dart`
+- [X] T014 [P] [US2] Add widget test for Asset Manager tab switching in `macaque/test/features/assets/widgets/asset_registry_panel_test.dart`
 
 ### Implementation for User Story 2
 
-- [X] T015 [US2] Refactor `AssetRegistryPanel` to include a TabController for "Local Assets" and "Workflow Assets" in `sikulite/lib/features/assets/widgets/asset_registry_panel.dart`
-- [X] T016 [US2] Implement `WorkflowAssetsTab` widget to display isolated assets in `sikulite/lib/features/assets/widgets/workflow_assets_tab.dart`
+- [X] T015 [US2] Refactor `AssetRegistryPanel` to include a TabController for "Local Assets" and "Workflow Assets" in `macaque/lib/features/assets/widgets/asset_registry_panel.dart`
+- [X] T016 [US2] Implement `WorkflowAssetsTab` widget to display isolated assets in `macaque/lib/features/assets/widgets/workflow_assets_tab.dart`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -94,13 +94,13 @@
 
 ### Tests for User Story 3
 
-- [X] T017 [P] [US3] Add unit tests for cleanup lifecycle and selective startup purge in `sikulite/test/features/workflow/services/cleanup_test.dart`
+- [X] T017 [P] [US3] Add unit tests for cleanup lifecycle and selective startup purge in `macaque/test/features/workflow/services/cleanup_test.dart`
 
 ### Implementation for User Story 3
 
-- [X] T018 [US3] Implement `ArchiveService.deleteIsolatedStore` recursive deletion in `sikulite/lib/features/workflow/services/archive_service.dart`
-- [X] T019 [US3] Hook cleanup logic into tab closure events in `sikulite/lib/features/workflow/view_models/workspace_view_model.dart`
-- [X] T020 [US3] Implement selective startup cleanup logic in `WorkspaceViewModel.restoreSession` (ensuring success confirmation) in `sikulite/lib/features/workflow/view_models/workspace_view_model.dart`
+- [X] T018 [US3] Implement `ArchiveService.deleteIsolatedStore` recursive deletion in `macaque/lib/features/workflow/services/archive_service.dart`
+- [X] T019 [US3] Hook cleanup logic into tab closure events in `macaque/lib/features/workflow/view_models/workspace_view_model.dart`
+- [X] T020 [US3] Implement selective startup cleanup logic in `WorkspaceViewModel.restoreSession` (ensuring success confirmation) in `macaque/lib/features/workflow/view_models/workspace_view_model.dart`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -110,8 +110,8 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [X] T021 [P] Performance validation: verify Load/Save < 2s for 10 assets in `sikulite/test/features/workflow/performance_test.dart`
-- [X] T022 [P] Implement UI warning for missing assets during bundling in `sikulite/lib/features/workflow/widgets/save_warning_dialog.dart`, ensuring styling consistency with filesystem error dialogs.
+- [X] T021 [P] Performance validation: verify Load/Save < 2s for 10 assets in `macaque/test/features/workflow/performance_test.dart`
+- [X] T022 [P] Implement UI warning for missing assets during bundling in `macaque/lib/features/workflow/widgets/save_warning_dialog.dart`, ensuring styling consistency with filesystem error dialogs.
 - [X] T023 [P] Update `README.md` and user documentation to reflect the new `.macaque` primary format
 
 ---
@@ -153,10 +153,10 @@
 
 ```bash
 # Launch unit tests for US1:
-Task: "T007 [P] [US1] Add unit tests for .macaque ZIP creation and extraction in sikulite/test/features/workflow/services/archive_service_test.dart"
+Task: "T007 [P] [US1] Add unit tests for .macaque ZIP creation and extraction in macaque/test/features/workflow/services/archive_service_test.dart"
 
 # While implementing the service:
-Task: "T008 [US1] Implement ArchiveService.bundleWorkflow bundling logic in sikulite/lib/features/workflow/services/archive_service.dart"
+Task: "T008 [US1] Implement ArchiveService.bundleWorkflow bundling logic in macaque/lib/features/workflow/services/archive_service.dart"
 ```
 
 ---
