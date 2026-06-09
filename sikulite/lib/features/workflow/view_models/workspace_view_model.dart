@@ -6,9 +6,11 @@ import 'package:sikulite/features/workflow/models/workspace_models.dart';
 import 'package:sikulite/features/workflow/services/session_persistence_service.dart';
 import 'package:sikulite/features/workflow/services/workflow_engine.dart';
 import 'package:sikulite/features/workflow/services/workflow_persistence.dart';
+import 'package:sikulite/features/workflow/services/archive_service.dart';
 import 'package:sikulite/features/workflow/view_models/workflow_view_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class WorkspaceViewModel extends ChangeNotifier {
   final SessionPersistenceService _sessionService;
@@ -16,6 +18,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   final WorkflowPersistence _persistence;
   final ApiClient _apiClient;
   final AssetStorageService _assetStorage;
+  final ArchiveService _archiveService = ArchiveService();
 
   final List<TabMetadata> _tabs = [];
   int _activeTabIndex = -1;
@@ -50,8 +53,9 @@ class WorkspaceViewModel extends ChangeNotifier {
     }
 
     // Basic validation
+    final ext = p.extension(filePath).toLowerCase();
     if (!filePath.startsWith('new://') &&
-        !(filePath.endsWith('.swflow') || filePath.endsWith('.json'))) {
+        !(ext == '.swflow' || ext == '.json' || ext == '.macaque')) {
       debugPrint('Invalid file type: $filePath');
       return;
     }
@@ -137,6 +141,14 @@ class WorkspaceViewModel extends ChangeNotifier {
       await tab.viewModel.saveToFile();
     }
 
+    // Cleanup isolated assets for this tab (US3)
+    final isolatedPath = tab.viewModel.isolatedAssetPath;
+    if (isolatedPath != null) {
+      // isolatedPath is usually .../assets, we want the parent which is the workflowId folder
+      final workflowStoreRoot = p.dirname(isolatedPath);
+      await _archiveService.deleteIsolatedStore(workflowStoreRoot);
+    }
+
     _tabs.removeAt(index);
     _focusHistory.remove(index);
 
@@ -209,6 +221,7 @@ class WorkspaceViewModel extends ChangeNotifier {
     final session = await _sessionService.loadSession();
     if (session == null) {
       debugPrint('No session found to restore.');
+      await _cleanupOrphanedIsolatedStores([]);
       return;
     }
 
@@ -243,7 +256,33 @@ class WorkspaceViewModel extends ChangeNotifier {
         selectTab(index);
       }
     }
+
+    // US3: Selective startup cleanup
+    final activeWorkflowIds = _tabs.map((t) => t.viewModel.currentWorkflow.id).toList();
+    await _cleanupOrphanedIsolatedStores(activeWorkflowIds);
+
     notifyListeners();
+  }
+
+  Future<void> _cleanupOrphanedIsolatedStores(List<String> activeIds) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final importsDir = Directory(p.join(tempDir.path, 'sikulite_imports'));
+      if (!await importsDir.exists()) return;
+
+      final entities = importsDir.listSync();
+      for (final entity in entities) {
+        if (entity is Directory) {
+          final id = p.basename(entity.path);
+          if (!activeIds.contains(id)) {
+            debugPrint('Cleaning up orphaned isolated store: $id');
+            await _archiveService.deleteIsolatedStore(entity.path);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error during startup cleanup: $e');
+    }
   }
 
   void saveSession() {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sikulite/features/assets/view_models/asset_view_model.dart';
 import 'package:sikulite/features/assets/widgets/drag_and_drop_overlay.dart';
+import 'package:sikulite/features/workflow/view_models/workspace_view_model.dart';
+import 'package:sikulite/features/assets/widgets/workflow_assets_tab.dart';
 
 import 'package:sikulite/features/assets/widgets/asset_item_tile.dart';
 
@@ -14,18 +16,52 @@ class AssetRegistryPanel extends StatefulWidget {
 
 class _AssetRegistryPanelState extends State<AssetRegistryPanel> {
   bool _isGridView = false;
+  String? _lastIsolatedPath;
 
   @override
   Widget build(BuildContext context) {
-    return DragAndDropOverlay(
-      child: Column(
-        children: [
-          _Toolbar(
-            isGridView: _isGridView,
-            onToggleView: () => setState(() => _isGridView = !_isGridView),
-          ),
-          Expanded(child: _AssetList(isGridView: _isGridView)),
-        ],
+    final workspace = context.watch<WorkspaceViewModel>();
+    final activeTab = workspace.activeTab;
+    final isolatedPath = activeTab?.viewModel.isolatedAssetPath;
+
+    // Sync isolated assets when the active tab changes
+    if (isolatedPath != _lastIsolatedPath) {
+      _lastIsolatedPath = isolatedPath;
+      Future.microtask(() {
+        if (mounted) {
+          context.read<AssetViewModel>().refreshIsolatedAssets(isolatedPath ?? '');
+        }
+      });
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: DragAndDropOverlay(
+        child: Column(
+          children: [
+            _Toolbar(
+              isGridView: _isGridView,
+              onToggleView: () => setState(() => _isGridView = !_isGridView),
+            ),
+            TabBar(
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Theme.of(context).textTheme.bodySmall?.color,
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: const [
+                Tab(text: 'Local Assets'),
+                Tab(text: 'Workflow Assets'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _AssetList(isGridView: _isGridView),
+                  WorkflowAssetsTab(isGridView: _isGridView),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

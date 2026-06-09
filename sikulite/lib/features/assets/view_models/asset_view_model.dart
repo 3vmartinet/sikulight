@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:watcher/watcher.dart';
+import 'package:path/path.dart' as p;
 import 'package:sikulite/features/assets/models/asset.dart';
 import 'package:sikulite/features/assets/services/asset_storage_service.dart';
 import 'package:sikulite/core/constants.dart';
@@ -12,6 +13,7 @@ class AssetViewModel extends ChangeNotifier {
   final AssetStorageService _storageService;
 
   List<Asset> _assets = [];
+  List<Asset> _isolatedAssets = [];
   bool _isLoading = false;
   StreamSubscription<WatchEvent>? _watcherSubscription;
 
@@ -21,6 +23,7 @@ class AssetViewModel extends ChangeNotifier {
   }
 
   List<Asset> get assets => _assets;
+  List<Asset> get isolatedAssets => _isolatedAssets;
   bool get isLoading => _isLoading;
 
   Future<void> _init() async {
@@ -46,6 +49,37 @@ class AssetViewModel extends ChangeNotifier {
     }
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Refreshes isolated assets from a specific directory (used for workflow assets)
+  Future<void> refreshIsolatedAssets(String directoryPath) async {
+    final dir = Directory(directoryPath);
+    if (!await dir.exists()) {
+      _isolatedAssets = [];
+      notifyListeners();
+      return;
+    }
+
+    final files = dir.listSync().whereType<File>();
+    final newAssets = <Asset>[];
+
+    for (final file in files) {
+      final filename = p.basename(file.path);
+      final extension = filename.split('.').last.toLowerCase();
+
+      if (AppConstants.supportedImageExtensions.contains(extension)) {
+        newAssets.add(Asset(
+          id: filename, // Using filename as ID for isolated assets
+          filename: filename,
+          path: file.path,
+          status: AssetStatus.available,
+          lastModified: (await file.lastModified()),
+        ));
+      }
+    }
+
+    _isolatedAssets = newAssets;
     notifyListeners();
   }
 

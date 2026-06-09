@@ -1,3 +1,3 @@
 <!-- SPECKIT START -->
-- Current Plan: `specs/008-multi-tab-workflows/plan.md`
+- Current Plan: `specs/009-embedded-workflow-assets/plan.md`
 <!-- SPECKIT END -->

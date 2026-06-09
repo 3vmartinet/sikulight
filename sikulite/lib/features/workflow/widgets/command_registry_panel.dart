@@ -8,46 +8,9 @@ class CommandRegistryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final taskProvider = context.watch<TaskProvider>();
-
-    return Column(
+    return const Column(
       children: [
-        Expanded(
-          child: ListView.builder(
-            itemCount: taskProvider.persistedCommands.length,
-            itemBuilder: (context, index) {
-              final command = taskProvider.persistedCommands[index];
-              return Draggable<TaskCommand>(
-                data: command,
-                feedback: Material(
-                  elevation: 4,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    child: ListTile(
-                      title: Text(command.name),
-                      subtitle: Text(command.profile.standardAction.value),
-                    ),
-                  ),
-                ),
-                childWhenDragging: Opacity(
-                  opacity: 0.5,
-                  child: ListTile(
-                    title: Text(command.name),
-                    subtitle: Text(command.profile.standardAction.value),
-                    trailing: const Icon(Icons.drag_indicator),
-                  ),
-                ),
-                child: ListTile(
-                  title: Text(command.name),
-                  subtitle: Text(command.profile.standardAction.value),
-                  trailing: const Icon(Icons.drag_indicator),
-                ),
-              );
-            },
-          ),
-        ),
-        const Divider(),
-        const _SystemNodesList(),
+        _SystemNodesList(),
       ],
     );
   }

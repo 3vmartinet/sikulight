@@ -8,6 +8,7 @@ import 'package:sikulite/features/workflow/view_models/workspace_view_model.dart
 import 'package:sikulite/features/workflow/services/workflow_engine.dart';
 import 'package:sikulite/features/workflow/models/workflow_models.dart'
     as models;
+import 'package:sikulite/features/workflow/widgets/save_warning_dialog.dart';
 
 class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
   const WorkflowToolbar({super.key});
@@ -45,7 +46,34 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
                     (n) => n.data is models.StartNode,
                   ))
               ? null
-              : viewModel.runWorkflow,
+              : () async {
+                  await viewModel.runWorkflow();
+                  
+                  if (context.mounted) {
+                    final stoppedId = engine.stoppedAtNodeId;
+                    String nodeInfo = 'Unknown Node';
+                    if (stoppedId != null) {
+                      final node = viewModel.controller.nodes[stoppedId];
+                      if (node != null) {
+                        nodeInfo = '${node.type} ($stoppedId)';
+                      }
+                    }
+
+                    await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Workflow Execution Finished'),
+                        content: Text('The workflow stopped executing at: $nodeInfo'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
           tooltip:
               !viewModel.controller.nodes.values.any(
                 (n) => n.data is models.StartNode,
@@ -65,7 +93,23 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.save),
           onPressed: () async {
             final scaffoldMessenger = ScaffoldMessenger.of(context);
-            await viewModel.saveToFile();
+
+            var missingAssets = await viewModel.saveToFile();
+
+            if (missingAssets.isNotEmpty && context.mounted) {
+              final proceed = await showDialog<bool>(
+                context: context,
+                builder: (context) =>
+                    SaveWarningDialog(missingAssetIds: missingAssets),
+              );
+
+              if (proceed == true) {
+                await viewModel.saveToFile(forceSave: true);
+              } else {
+                return; // User cancelled save
+              }
+            }
+
             final path = viewModel.resolvedPath ?? 'internal draft';
             scaffoldMessenger.showSnackBar(
               SnackBar(content: Text('Saved: $path')),
@@ -79,7 +123,7 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
             final workspaceVM = context.read<WorkspaceViewModel>();
             final result = await FilePicker.pickFiles(
               type: FileType.custom,
-              allowedExtensions: ['swflow', 'json'],
+              allowedExtensions: ['macaque', 'swflow', 'json'],
             );
 
             if (result != null && result.files.single.path != null) {
@@ -95,13 +139,20 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
 
             final String? outputFile = await FilePicker.saveFile(
               dialogTitle: 'Export Workflow',
-              fileName: '${viewModel.workflowName}.swflow',
+              fileName: '${viewModel.workflowName}.macaque',
               type: FileType.custom,
-              allowedExtensions: ['swflow'],
+              allowedExtensions: ['macaque'],
             );
 
             if (outputFile != null) {
-              await viewModel.exportWorkflow(File(outputFile));
+              // Ensure we use saveToFile for .macaque if it's the target
+              if (outputFile.endsWith('.macaque')) {
+                await viewModel.saveToFile(forceSave: true);
+                // TODO: handle missing assets for export similarly to save if needed
+              } else {
+                await viewModel.exportWorkflow(File(outputFile));
+              }
+
               scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Workflow exported to: $outputFile'),

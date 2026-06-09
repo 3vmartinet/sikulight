@@ -524,6 +524,21 @@ class Workflow extends Equatable {
     'variables': variables,
   };
 
+  /// Returns a list of all asset IDs referenced by the nodes in this workflow.
+  List<String> get referencedAssetIds {
+    final ids = <String>{};
+    for (final node in nodes) {
+      if (node is VdaActionNode && node.assetId != null) {
+        ids.add(node.assetId!);
+      } else if (node is VisualCheckNode) {
+        ids.add(node.assetId);
+      } else if (node is ExistNode) {
+        ids.add(node.assetId);
+      }
+    }
+    return ids.toList();
+  }
+
   factory Workflow.fromJson(Map<String, dynamic> json) => Workflow(
     id: json['id'] as String,
     name: json['name'] as String,

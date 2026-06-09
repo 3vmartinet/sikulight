@@ -18,6 +18,9 @@ class WorkflowEngine extends ChangeNotifier {
   String? _activeNodeId;
   String? get activeNodeId => _activeNodeId;
 
+  String? _stoppedAtNodeId;
+  String? get stoppedAtNodeId => _stoppedAtNodeId;
+
   final Map<String, dynamic> _variables = {};
   Map<String, dynamic> get variables => Map.unmodifiable(_variables);
 
@@ -66,6 +69,7 @@ class WorkflowEngine extends ChangeNotifier {
 
     _status = WorkflowStatus.running;
     _activeNodeId = null;
+    _stoppedAtNodeId = null;
     _variables.clear();
     _variables.addAll(workflow.variables);
     _assetMap.clear();
@@ -87,6 +91,7 @@ class WorkflowEngine extends ChangeNotifier {
       models.NodeData? currentNode = startNode;
       while (currentNode != null && _status == WorkflowStatus.running) {
         _activeNodeId = currentNode.id;
+        _stoppedAtNodeId = currentNode.id;
         _nodeExecutionCounts[currentNode.id] =
             (_nodeExecutionCounts[currentNode.id] ?? 0) + 1;
         notifyListeners();

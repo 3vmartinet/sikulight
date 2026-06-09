@@ -9,6 +9,7 @@ import 'package:sikulite/features/workflow/models/workflow_models.dart'
     as models;
 import 'package:sikulite/features/workflow/services/workflow_engine.dart';
 import 'package:sikulite/features/workflow/services/workflow_persistence.dart';
+import 'package:sikulite/features/workflow/models/isolated_asset_store.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:sikulite/features/assets/services/asset_storage_service.dart';
@@ -26,6 +27,7 @@ class WorkflowViewModel extends ChangeNotifier {
   String? _filePath;
   String? _resolvedPath;
   bool _isModified = false;
+  IsolatedAssetStore? _isolatedStore;
 
   WorkflowViewModel({
     required WorkflowEngine engine,
@@ -67,6 +69,7 @@ class WorkflowViewModel extends ChangeNotifier {
   String? get filePath => _filePath;
   String? get resolvedPath => _resolvedPath;
   bool get isModified => _isModified;
+  String? get isolatedAssetPath => _isolatedStore?.rootPath;
 
   Future<void> _resolvePath() async {
     _resolvedPath = await _persistence.getAbsoluteFilePath(
@@ -85,8 +88,24 @@ class WorkflowViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _initIsolatedStore() async {
+    if (_isolatedStore == null) {
+      _isolatedStore = IsolatedAssetStore(workflowId: _workflowId);
+      await _isolatedStore!.init();
+    }
+  }
+
   Future<void> loadFile(File file) async {
-    final workflow = await _persistence.importWorkflow(file);
+    final extension = p.extension(file.path).toLowerCase();
+    models.Workflow? workflow;
+
+    if (extension == '.macaque') {
+      await _initIsolatedStore();
+      workflow = await _persistence.loadWorkflow(file, _isolatedStore!.rootPath);
+    } else {
+      workflow = await _persistence.importWorkflow(file);
+    }
+
     if (workflow != null) {
       // Use a new ID for the imported workflow to avoid draft conflicts
       // but keep the name.
@@ -144,14 +163,65 @@ class WorkflowViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> saveToFile() async {
-    if (_filePath != null && !_filePath!.startsWith('new://')) {
-      await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
-    } else {
-      await _persistence.saveDraft(currentWorkflow);
+  Future<List<String>> saveToFile({bool forceSave = false}) async {
+    final targetPath = _filePath != null && !_filePath!.startsWith('new://')
+        ? _filePath!
+        : (await _persistence.getExportFile(fileName: _workflowName)).path;
+
+    // Collect assets to bundle
+    final workflow = currentWorkflow;
+    final assetIds = workflow.referencedAssetIds;
+    final assetsToBundle = <File>[];
+    final missingAssetIds = <String>[];
+
+    // Check both local and isolated assets
+    final localAssets = await _assetStorage.loadAssets();
+    for (final id in assetIds) {
+      bool found = false;
+      
+      // Priority 1: Isolated assets
+      if (_isolatedStore != null) {
+        final isolatedPath = _isolatedStore!.getPathForAsset(id);
+        final file = File(isolatedPath);
+        if (await file.exists()) {
+          assetsToBundle.add(file);
+          found = true;
+        }
+      }
+
+      // Priority 2: Local assets (only if not found in isolated)
+      if (!found) {
+        final localAsset = localAssets.where((a) => a.id == id).firstOrNull;
+        if (localAsset != null) {
+          final file = File(localAsset.path);
+          if (await file.exists()) {
+            assetsToBundle.add(file);
+            found = true;
+          }
+        }
+      }
+
+      if (!found) {
+        missingAssetIds.add(id);
+      }
     }
+
+    // If there are missing assets and we are not forcing save, we return them to the UI
+    if (missingAssetIds.isNotEmpty && !forceSave) {
+      return missingAssetIds;
+    }
+
+    await _persistence.saveWorkflow(
+      workflow: workflow,
+      assets: assetsToBundle,
+      targetFile: File(targetPath),
+    );
+
+    _filePath = targetPath;
     _isModified = false;
     notifyListeners();
+    
+    return []; // No missing assets (or saved anyway)
   }
 
   Future<void> loadDraft() async {
@@ -346,11 +416,8 @@ class WorkflowViewModel extends ChangeNotifier {
     _isModified = true;
     notifyListeners();
 
-    if (_filePath != null && !_filePath!.startsWith('new://')) {
-      await _persistence.exportWorkflow(currentWorkflow, File(_filePath!));
-    } else {
-      await _persistence.saveDraft(currentWorkflow);
-    }
+    // Spec FR-001: Every save operation results in a .macaque file
+    await saveToFile(forceSave: true);
 
     _isModified = false;
     notifyListeners();
@@ -413,9 +480,21 @@ class WorkflowViewModel extends ChangeNotifier {
   }
 
   Future<void> runWorkflow() async {
-    final assets = await _assetStorage.loadAssets();
-    final assetMap = {for (var a in assets) a.id: a.path};
-    final assetNameMap = {for (var a in assets) a.id: a.filename};
+    final localAssets = await _assetStorage.loadAssets();
+    final assetMap = {for (var a in localAssets) a.id: a.path};
+    final assetNameMap = {for (var a in localAssets) a.id: a.filename};
+
+    // Merge with isolated assets
+    if (_isolatedStore != null && await _isolatedStore!.exists()) {
+      final dir = Directory(_isolatedStore!.rootPath);
+      final files = dir.listSync().whereType<File>();
+      for (final file in files) {
+        final filename = p.basename(file.path);
+        // Using filename as ID for isolated assets
+        assetMap[filename] = file.path;
+        assetNameMap[filename] = filename;
+      }
+    }
 
     await _persistence.saveDraft(currentWorkflow);
     await _apiClient.hideApp();
