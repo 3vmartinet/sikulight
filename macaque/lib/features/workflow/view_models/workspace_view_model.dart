@@ -12,6 +12,8 @@ import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:macaque/core/constants.dart';
+
 class WorkspaceViewModel extends ChangeNotifier {
   final SessionPersistenceService _sessionService;
   final WorkflowEngine _engine;
@@ -54,8 +56,7 @@ class WorkspaceViewModel extends ChangeNotifier {
 
     // Basic validation
     final ext = p.extension(filePath).toLowerCase();
-    if (!filePath.startsWith('new://') &&
-        !(ext == '.swflow' || ext == '.json' || ext == '.macaque')) {
+    if (!filePath.startsWith('new://') && ext != AppConstants.workflowExtension) {
       debugPrint('Invalid file type: $filePath');
       return;
     }

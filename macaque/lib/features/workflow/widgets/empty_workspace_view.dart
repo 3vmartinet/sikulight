@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:macaque/features/workflow/view_models/workspace_view_model.dart';
+import 'package:macaque/core/constants.dart';
 
 class EmptyWorkspaceView extends StatelessWidget {
   const EmptyWorkspaceView({super.key});
@@ -53,11 +54,11 @@ class EmptyWorkspaceView extends StatelessWidget {
                     icon: Icons.folder_open,
                     title: 'Open Workflow',
                     description:
-                        'Open an existing .swflow or .json workflow file',
+                        'Open an existing ${AppConstants.workflowExtension} workflow file',
                     onTap: () async {
                       final result = await FilePicker.pickFiles(
                         type: FileType.custom,
-                        allowedExtensions: ['swflow', 'json'],
+                        allowedExtensions: [AppConstants.workflowExtensionName],
                       );
                       if (result != null && result.files.single.path != null) {
                         if (context.mounted) {

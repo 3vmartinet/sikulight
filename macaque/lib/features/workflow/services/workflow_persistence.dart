@@ -5,8 +5,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:macaque/features/workflow/models/workflow_models.dart';
 import 'package:macaque/features/workflow/services/archive_service.dart';
 
+import 'package:macaque/core/constants.dart';
+
 class WorkflowPersistence {
-  static const String exportedFileName = 'exported_workflow.macaque';
+  static const String exportedFileName = 'exported_workflow${AppConstants.workflowExtension}';
   final ArchiveService _archiveService = ArchiveService();
 
   Future<Directory> get localDirectory async {
@@ -32,8 +34,10 @@ class WorkflowPersistence {
   Future<File> getExportFile({String? fileName}) async {
     final dir = await localDirectory;
     final name = fileName ?? exportedFileName;
-    // Ensure .macaque extension
-    final finalName = name.endsWith('.macaque') ? name : '$name.macaque';
+    // Ensure correct extension
+    final finalName = name.endsWith(AppConstants.workflowExtension)
+        ? name
+        : '$name${AppConstants.workflowExtension}';
     return File('${dir.path}/$finalName');
   }
 

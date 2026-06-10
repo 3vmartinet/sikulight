@@ -7,8 +7,6 @@ import 'dart:async' as _i6;
 import 'dart:io' as _i2;
 import 'dart:ui' as _i11;
 
-import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i13;
 import 'package:macaque/core/api_client.dart' as _i14;
 import 'package:macaque/features/assets/models/asset.dart' as _i4;
 import 'package:macaque/features/assets/services/asset_storage_service.dart'
@@ -20,10 +18,11 @@ import 'package:macaque/features/workflow/models/workflow_models.dart' as _i10;
 import 'package:macaque/features/workflow/models/workspace_models.dart' as _i7;
 import 'package:macaque/features/workflow/services/session_persistence_service.dart'
     as _i5;
-import 'package:macaque/features/workflow/services/workflow_engine.dart'
-    as _i8;
+import 'package:macaque/features/workflow/services/workflow_engine.dart' as _i8;
 import 'package:macaque/features/workflow/services/workflow_persistence.dart'
     as _i12;
+import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i13;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -132,6 +131,14 @@ class MockWorkflowEngine extends _i1.Mock implements _i8.WorkflowEngine {
             returnValue: <String, int>{},
           )
           as Map<String, int>);
+
+  @override
+  Map<String, String> get assetNameMap =>
+      (super.noSuchMethod(
+            Invocation.getter(#assetNameMap),
+            returnValue: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
   bool get hasListeners =>
@@ -263,6 +270,34 @@ class MockWorkflowPersistence extends _i1.Mock
   _i6.Future<_i10.Workflow?> loadDraft(String? workflowId) =>
       (super.noSuchMethod(
             Invocation.method(#loadDraft, [workflowId]),
+            returnValue: _i6.Future<_i10.Workflow?>.value(),
+          )
+          as _i6.Future<_i10.Workflow?>);
+
+  @override
+  _i6.Future<void> saveWorkflow({
+    required _i10.Workflow? workflow,
+    required List<_i2.File>? assets,
+    required _i2.File? targetFile,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveWorkflow, [], {
+              #workflow: workflow,
+              #assets: assets,
+              #targetFile: targetFile,
+            }),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<_i10.Workflow?> loadWorkflow(
+    _i2.File? sourceFile,
+    String? extractionPath,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#loadWorkflow, [sourceFile, extractionPath]),
             returnValue: _i6.Future<_i10.Workflow?>.value(),
           )
           as _i6.Future<_i10.Workflow?>);

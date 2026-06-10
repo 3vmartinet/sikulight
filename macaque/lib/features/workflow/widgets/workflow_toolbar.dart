@@ -9,6 +9,7 @@ import 'package:macaque/features/workflow/services/workflow_engine.dart';
 import 'package:macaque/features/workflow/models/workflow_models.dart'
     as models;
 import 'package:macaque/features/workflow/widgets/save_warning_dialog.dart';
+import 'package:macaque/core/constants.dart';
 
 class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
   const WorkflowToolbar({super.key});
@@ -116,7 +117,7 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
             final workspaceVM = context.read<WorkspaceViewModel>();
             final result = await FilePicker.pickFiles(
               type: FileType.custom,
-              allowedExtensions: ['macaque', 'swflow', 'json'],
+              allowedExtensions: [AppConstants.workflowExtensionName],
             );
 
             if (result != null && result.files.single.path != null) {
@@ -132,19 +133,13 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
 
             final String? outputFile = await FilePicker.saveFile(
               dialogTitle: 'Export Workflow',
-              fileName: '${viewModel.workflowName}.macaque',
+              fileName: '${viewModel.workflowName}${AppConstants.workflowExtension}',
               type: FileType.custom,
-              allowedExtensions: ['macaque'],
+              allowedExtensions: [AppConstants.workflowExtensionName],
             );
 
             if (outputFile != null) {
-              // Ensure we use saveToFile for .macaque if it's the target
-              if (outputFile.endsWith('.macaque')) {
-                await viewModel.saveToFile(forceSave: true);
-                // TODO: handle missing assets for export similarly to save if needed
-              } else {
-                await viewModel.exportWorkflow(File(outputFile));
-              }
+              await viewModel.exportWorkflow(File(outputFile));
 
               scaffoldMessenger.showSnackBar(
                 SnackBar(

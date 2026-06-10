@@ -9,4 +9,8 @@ class AppConstants {
   
   // Supported image formats
   static const List<String> supportedImageExtensions = ['png', 'jpg', 'jpeg'];
+
+  // Workflow file extensions
+  static const String workflowExtension = '.macaque';
+  static const String workflowExtensionName = 'macaque';
 }

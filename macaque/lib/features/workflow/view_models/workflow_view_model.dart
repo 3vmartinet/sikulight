@@ -13,6 +13,7 @@ import 'package:macaque/features/workflow/models/isolated_asset_store.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:macaque/features/assets/services/asset_storage_service.dart';
+import 'package:macaque/core/constants.dart';
 
 class WorkflowViewModel extends ChangeNotifier {
   final ApiClient _apiClient;
@@ -99,11 +100,12 @@ class WorkflowViewModel extends ChangeNotifier {
     final extension = p.extension(file.path).toLowerCase();
     models.Workflow? workflow;
 
-    if (extension == '.macaque') {
+    if (extension == AppConstants.workflowExtension) {
       await _initIsolatedStore();
       workflow = await _persistence.loadWorkflow(file, _isolatedStore!.rootPath);
     } else {
-      workflow = await _persistence.importWorkflow(file);
+      debugPrint('Unsupported file type for loadFile: ${file.path}');
+      return;
     }
 
     if (workflow != null) {
@@ -163,23 +165,17 @@ class WorkflowViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<String>> saveToFile({bool forceSave = false}) async {
-    final targetPath = _filePath != null && !_filePath!.startsWith('new://')
-        ? _filePath!
-        : (await _persistence.getExportFile(fileName: _workflowName)).path;
-
-    // Collect assets to bundle
-    final workflow = currentWorkflow;
+  Future<({List<File> assets, List<String> missing})> _collectAssets(
+    models.Workflow workflow,
+  ) async {
     final assetIds = workflow.referencedAssetIds;
     final assetsToBundle = <File>[];
     final missingAssetIds = <String>[];
 
-    // Check both local and isolated assets
     final localAssets = await _assetStorage.loadAssets();
     for (final id in assetIds) {
       bool found = false;
-      
-      // Priority 1: Isolated assets
+
       if (_isolatedStore != null) {
         final isolatedPath = _isolatedStore!.getPathForAsset(id);
         final file = File(isolatedPath);
@@ -189,7 +185,6 @@ class WorkflowViewModel extends ChangeNotifier {
         }
       }
 
-      // Priority 2: Local assets (only if not found in isolated)
       if (!found) {
         final localAsset = localAssets.where((a) => a.id == id).firstOrNull;
         if (localAsset != null) {
@@ -206,22 +201,32 @@ class WorkflowViewModel extends ChangeNotifier {
       }
     }
 
-    // If there are missing assets and we are not forcing save, we return them to the UI
-    if (missingAssetIds.isNotEmpty && !forceSave) {
-      return missingAssetIds;
+    return (assets: assetsToBundle, missing: missingAssetIds);
+  }
+
+  Future<List<String>> saveToFile({bool forceSave = false}) async {
+    final targetPath = _filePath != null && !_filePath!.startsWith('new://')
+        ? _filePath!
+        : (await _persistence.getExportFile(fileName: _workflowName)).path;
+
+    final workflow = currentWorkflow;
+    final (:assets, :missing) = await _collectAssets(workflow);
+
+    if (missing.isNotEmpty && !forceSave) {
+      return missing;
     }
 
     await _persistence.saveWorkflow(
       workflow: workflow,
-      assets: assetsToBundle,
+      assets: assets,
       targetFile: File(targetPath),
     );
 
     _filePath = targetPath;
     _isModified = false;
     notifyListeners();
-    
-    return []; // No missing assets (or saved anyway)
+
+    return [];
   }
 
   Future<void> loadDraft() async {
@@ -748,7 +753,16 @@ class WorkflowViewModel extends ChangeNotifier {
 
   Future<void> exportWorkflow([File? target]) async {
     final targetFile = target ??
-        await _persistence.getExportFile(fileName: '$_workflowName.swflow');
-    await _persistence.exportWorkflow(currentWorkflow, targetFile);
+        await _persistence.getExportFile(
+          fileName: '$_workflowName${AppConstants.workflowExtension}',
+        );
+    final workflow = currentWorkflow;
+    final (:assets, missing: _) = await _collectAssets(workflow);
+
+    await _persistence.saveWorkflow(
+      workflow: workflow,
+      assets: assets,
+      targetFile: targetFile,
+    );
   }
 }

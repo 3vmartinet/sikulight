@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -7,6 +8,16 @@ import 'package:macaque/features/workflow/view_models/workflow_view_model.dart';
 import 'package:macaque/features/workflow/widgets/workflow_tab.dart';
 import 'package:macaque/features/workflow/widgets/workflow_tab_bar.dart';
 import '../view_models/workspace_view_model_test.mocks.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+class MockPathProviderPlatform extends PathProviderPlatform
+    with MockPlatformInterfaceMixin {
+  @override
+  Future<String?> getTemporaryPath() async => '.';
+  @override
+  Future<String?> getApplicationDocumentsPath() async => '.';
+}
 
 void main() {
   late MockSessionPersistenceService mockSessionService;
@@ -17,6 +28,8 @@ void main() {
   late WorkspaceViewModel workspaceVM;
 
   setUp(() {
+    PathProviderPlatform.instance = MockPathProviderPlatform();
+
     mockSessionService = MockSessionPersistenceService();
     mockEngine = MockWorkflowEngine();
     mockPersistence = MockWorkflowPersistence();
@@ -24,6 +37,7 @@ void main() {
     mockAssetStorage = MockAssetStorageService();
 
     when(mockPersistence.importWorkflow(any)).thenAnswer((_) async => null);
+    when(mockPersistence.loadWorkflow(any, any)).thenAnswer((_) async => null);
     when(mockPersistence.getAbsoluteFilePath(any, filePath: anyNamed('filePath')))
         .thenAnswer((invocation) async => invocation.namedArguments[#filePath] ?? 'mock_path');
 
@@ -48,8 +62,8 @@ void main() {
   }
 
   testWidgets('WorkflowTabBar should display open tabs', (tester) async {
-    await workspaceVM.openWorkflow('/path/1.swflow');
-    await workspaceVM.openWorkflow('/path/2.swflow');
+    await workspaceVM.openWorkflow('/path/1.macaque');
+    await workspaceVM.openWorkflow('/path/2.macaque');
 
     await tester.pumpWidget(createTestWidget(const WorkflowTabBar()));
 
@@ -58,7 +72,7 @@ void main() {
   });
 
   testWidgets('WorkflowTab should show modified indicator', (tester) async {
-    await workspaceVM.openWorkflow('/path/1.swflow');
+    await workspaceVM.openWorkflow('/path/1.macaque');
     // We can't easily mock WorkflowViewModel.isModified because it's a real class created inside WorkspaceViewModel
     // But we can check if it's rendered when we provide a tab.
 
@@ -80,7 +94,7 @@ void main() {
   });
 
   testWidgets('WorkflowTab should trigger rename dialog on double tap', (tester) async {
-    await workspaceVM.openWorkflow('/path/1.swflow');
+    await workspaceVM.openWorkflow('/path/1.macaque');
     final tab = workspaceVM.tabs[0];
 
     await tester.pumpWidget(

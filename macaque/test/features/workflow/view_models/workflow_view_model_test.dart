@@ -68,6 +68,15 @@ void main() {
   );
 
   test('WorkflowViewModel.exportWorkflow should use workflow name if no target provided', () async {
+    when(mockPersistence.getExportFile(fileName: anyNamed('fileName')))
+        .thenAnswer((_) async => File('dummy.macaque'));
+    when(mockAssetStorage.loadAssets()).thenAnswer((_) async => []);
+    when(mockPersistence.saveWorkflow(
+      workflow: anyNamed('workflow'),
+      assets: anyNamed('assets'),
+      targetFile: anyNamed('targetFile'),
+    )).thenAnswer((_) async {});
+
     final viewModel = WorkflowViewModel(
       engine: mockEngine,
       persistence: mockPersistence,
@@ -77,11 +86,8 @@ void main() {
 
     viewModel.renameWorkflow('My Awesome Workflow');
 
-    when(mockPersistence.getExportFile(fileName: anyNamed('fileName')))
-        .thenAnswer((_) async => File('dummy.swflow'));
-
     await viewModel.exportWorkflow();
 
-    verify(mockPersistence.getExportFile(fileName: 'My Awesome Workflow.swflow')).called(1);
+    verify(mockPersistence.getExportFile(fileName: 'My Awesome Workflow.macaque')).called(1);
   });
 }

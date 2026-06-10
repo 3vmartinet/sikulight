@@ -19,8 +19,8 @@ void main() {
   group('SessionPersistenceService', () {
     test('saveSession and loadSession should persist session data', () async {
       final session = WorkspaceSession(
-        activeWorkflowPath: '/path/to/active.swflow',
-        openFilePaths: ['/path/to/active.swflow', '/path/to/other.swflow'],
+        activeWorkflowPath: '/path/to/active.macaque',
+        openFilePaths: ['/path/to/active.macaque', '/path/to/other.macaque'],
         lastUpdated: DateTime(2026, 5, 8),
       );
 
@@ -28,8 +28,8 @@ void main() {
       final loadedSession = await service.loadSession();
 
       expect(loadedSession, isNotNull);
-      expect(loadedSession!.activeWorkflowPath, '/path/to/active.swflow');
-      expect(loadedSession.openFilePaths, contains('/path/to/other.swflow'));
+      expect(loadedSession!.activeWorkflowPath, '/path/to/active.macaque');
+      expect(loadedSession.openFilePaths, contains('/path/to/other.macaque'));
       expect(loadedSession.lastUpdated, session.lastUpdated);
     });
 
