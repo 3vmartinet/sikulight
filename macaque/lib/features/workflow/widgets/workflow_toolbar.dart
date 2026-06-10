@@ -10,6 +10,8 @@ import 'package:macaque/features/workflow/models/workflow_models.dart'
     as models;
 import 'package:macaque/features/workflow/widgets/save_warning_dialog.dart';
 import 'package:macaque/core/constants.dart';
+import 'package:macaque/core/server_view_model.dart';
+
 
 class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
   const WorkflowToolbar({super.key});
@@ -26,6 +28,8 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 8,
       leading: const Icon(Icons.show_chart),
       actions: [
+        const _ServerStatusIcon(),
+        const VerticalDivider(),
         _ElapsedTimeDisplay(engine: engine),
         const VerticalDivider(),
         IconButton(
@@ -304,6 +308,66 @@ class _ExecutionResultDialog extends StatelessWidget {
           child: const Text('OK'),
         ),
       ],
+    );
+  }
+}
+
+class _ServerStatusIcon extends StatelessWidget {
+  const _ServerStatusIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    final status = context.select<ServerViewModel, ServerStatus>((vm) => vm.status);
+    final serverVM = context.read<ServerViewModel>();
+
+    final (iconData, color, tooltip) = switch (status) {
+      ServerStatus.starting => (
+          Icons.sync,
+          Colors.orange,
+          'Server is starting...',
+        ),
+      ServerStatus.started => (
+          Icons.dns,
+          Colors.green,
+          'Server is running (API port 8000). Click to stop.',
+        ),
+      ServerStatus.failedToStart => (
+          Icons.error_outline,
+          Colors.red,
+          'Server failed to start. Click to retry.',
+        ),
+      ServerStatus.stopped => (
+          Icons.cloud_queue,
+          Colors.grey,
+          'Server is stopped. Click to start.',
+        ),
+    };
+
+    final isStarting = status == ServerStatus.starting;
+
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: isStarting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                ),
+              )
+            : Icon(iconData, color: color),
+        onPressed: isStarting
+            ? null
+            : () {
+                if (status == ServerStatus.started) {
+                  serverVM.stopServer();
+                } else {
+                  serverVM.startServer();
+                }
+              },
+      ),
     );
   }
 }

@@ -11,6 +11,8 @@ import 'package:macaque/features/workflow/services/workflow_persistence.dart';
 import 'package:macaque/features/workflow/services/session_persistence_service.dart';
 import 'package:macaque/features/workflow/view_models/workspace_view_model.dart';
 import 'package:macaque/features/workflow/view_models/sidebar_view_model.dart';
+import 'package:macaque/core/server_view_model.dart';
+
 
 void main() {
   final apiClient = ApiClient();
@@ -27,6 +29,9 @@ void main() {
           create: (_) => AssetViewModel(storageService: assetStorage),
         ),
         ChangeNotifierProvider(create: (_) => SidebarViewModel()),
+        ChangeNotifierProvider(
+          create: (_) => ServerViewModel(apiClient: apiClient),
+        ),
         ChangeNotifierProvider(
           create: (_) => WorkflowEngine(apiClient: apiClient),
         ),
@@ -64,13 +69,16 @@ class _MacaqueAppState extends State<MacaqueApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    context.read<ServerViewModel>().stopServer();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached ||
-        state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.detached) {
+      context.read<WorkspaceViewModel>().saveSession();
+      context.read<ServerViewModel>().stopServer();
+    } else if (state == AppLifecycleState.inactive) {
       context.read<WorkspaceViewModel>().saveSession();
     }
   }
