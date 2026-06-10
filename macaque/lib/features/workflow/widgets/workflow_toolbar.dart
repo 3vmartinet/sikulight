@@ -48,28 +48,21 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
               ? null
               : () async {
                   await viewModel.runWorkflow();
-                  
+
                   if (context.mounted) {
+                    final isError = engine.status == WorkflowStatus.error;
                     final stoppedId = engine.stoppedAtNodeId;
-                    String nodeInfo = 'Unknown Node';
-                    if (stoppedId != null) {
-                      final node = viewModel.controller.nodes[stoppedId];
-                      if (node != null) {
-                        nodeInfo = '${node.type} ($stoppedId)';
-                      }
-                    }
+                    final nodeDescription = _buildNodeDescription(
+                      stoppedId,
+                      viewModel,
+                      engine,
+                    );
 
                     await showDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Workflow Execution Finished'),
-                        content: Text('The workflow stopped executing at: $nodeInfo'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('OK'),
-                          ),
-                        ],
+                      builder: (ctx) => _ExecutionResultDialog(
+                        isError: isError,
+                        nodeDescription: nodeDescription,
                       ),
                     );
                   }
@@ -218,6 +211,104 @@ class _ElapsedTimeDisplayState extends State<_ElapsedTimeDisplay> {
           ),
         ),
       ),
+    );
+  }
+}
+
+String _buildNodeDescription(
+  String? nodeId,
+  WorkflowViewModel viewModel,
+  WorkflowEngine engine,
+) {
+  if (nodeId == null) return 'Unknown node';
+
+  final node = viewModel.controller.nodes[nodeId];
+  if (node == null) return 'Unknown node';
+
+  final data = node.data;
+  final assetNameMap = engine.assetNameMap;
+
+  return switch (data) {
+    models.StartNode() => 'Start Node',
+    models.EndNode() => 'End Node',
+    models.WaitNode n => 'Wait Node – ${n.durationSeconds} s',
+    models.ExistNode n => () {
+        final name = assetNameMap[n.assetId] ?? n.assetId;
+        return 'Exist Node – $name';
+      }(),
+    models.VisualCheckNode n => () {
+        final name = assetNameMap[n.assetId] ?? n.assetId;
+        return 'Visual Check Node – $name';
+      }(),
+    models.VdaActionNode n => () {
+        final action = n.command.profile.standardAction.value;
+        final assetName = n.assetId != null
+            ? (assetNameMap[n.assetId!] ?? n.assetId!)
+            : null;
+        return assetName != null
+            ? 'Action Node – $action on $assetName'
+            : 'Action Node – $action';
+      }(),
+    models.BranchNode n => 'Branch Node (${n.conditionType.name})',
+    models.LoopNode n => 'Loop Node (${n.loopType.name})',
+    models.VariableNode n => 'Variable Node – ${n.variableName}',
+  };
+}
+
+class _ExecutionResultDialog extends StatelessWidget {
+  final bool isError;
+  final String nodeDescription;
+
+  const _ExecutionResultDialog({
+    required this.isError,
+    required this.nodeDescription,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isError ? Colors.redAccent : Colors.green;
+    final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
+    final title = isError ? 'Workflow Failed' : 'Workflow Completed';
+    final subtitle = isError
+        ? 'The workflow encountered an error at:'
+        : 'The workflow finished successfully at:';
+
+    return AlertDialog(
+      icon: Icon(icon, color: color, size: 36),
+      title: Text(
+        title,
+        style: theme.textTheme.titleLarge?.copyWith(color: color),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(subtitle, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              nodeDescription,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('OK'),
+        ),
+      ],
     );
   }
 }

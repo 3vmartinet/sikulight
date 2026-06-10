@@ -89,10 +89,13 @@ class WorkflowCanvas extends StatelessWidget {
           },
           nodeBuilder: (context, node) {
             final isActive = engine.activeNodeId == node.id;
+            final isError = engine.status == WorkflowStatus.error &&
+                engine.stoppedAtNodeId == node.id;
             final executionCount = engine.nodeExecutionCounts[node.id] ?? 0;
             return _NodeWidget(
               nodeData: node.data,
               isActive: isActive,
+              isError: isError,
               executionCount: executionCount,
             );
           },
@@ -105,11 +108,13 @@ class WorkflowCanvas extends StatelessWidget {
 class _NodeWidget extends StatelessWidget {
   final models.NodeData nodeData;
   final bool isActive;
+  final bool isError;
   final int executionCount;
 
   const _NodeWidget({
     required this.nodeData,
     this.isActive = false,
+    this.isError = false,
     this.executionCount = 0,
   });
 
@@ -143,10 +148,20 @@ class _NodeWidget extends StatelessWidget {
             color: _getNodeColor(theme, nodeData),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive ? Colors.yellowAccent : theme.dividerColor,
-              width: isActive ? 3 : 1,
+              color: isError
+                  ? Colors.redAccent
+                  : isActive
+                  ? Colors.yellowAccent
+                  : theme.dividerColor,
+              width: (isActive || isError) ? 3 : 1,
             ),
             boxShadow: [
+              if (isError)
+                BoxShadow(
+                  color: Colors.redAccent.withValues(alpha: 0.5),
+                  blurRadius: 12,
+                  spreadRadius: 3,
+                ),
               if (isActive)
                 BoxShadow(
                   color: Colors.yellowAccent.withValues(alpha: 0.5),

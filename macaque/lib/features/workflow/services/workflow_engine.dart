@@ -59,6 +59,7 @@ class WorkflowEngine extends ChangeNotifier {
 
   final Map<String, String> _assetMap = {};
   final Map<String, String> _assetNameMap = {};
+  Map<String, String> get assetNameMap => Map.unmodifiable(_assetNameMap);
 
   Future<void> run(
     models.Workflow workflow, {
