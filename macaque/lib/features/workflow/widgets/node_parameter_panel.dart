@@ -117,6 +117,15 @@ class NodeParameterPanel extends StatelessWidget {
                     onSelected: (assetId) =>
                         viewModel.updateNodeAssetId(nodeId, assetId),
                   ),
+                  const SizedBox(height: 16),
+                  _ConfidenceThresholdSlider(
+                    currentThreshold: nodeData.confidenceThreshold,
+                    onChanged: (val) =>
+                        viewModel.updateExistNodeConfidenceThreshold(
+                          nodeId,
+                          val,
+                        ),
+                  ),
                 ],
                 if (nodeData is models.VisualCheckNode) ...[
                   _AssetSelector(
@@ -427,6 +436,93 @@ class _DurationField extends StatelessWidget {
         final duration = int.tryParse(value) ?? currentDuration;
         onChanged(duration);
       },
+    );
+  }
+}
+
+class _ConfidenceThresholdSlider extends StatefulWidget {
+  final double currentThreshold;
+  final ValueChanged<double> onChanged;
+
+  const _ConfidenceThresholdSlider({
+    required this.currentThreshold,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ConfidenceThresholdSlider> createState() =>
+      _ConfidenceThresholdSliderState();
+}
+
+class _ConfidenceThresholdSliderState
+    extends State<_ConfidenceThresholdSlider> {
+  late double _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.currentThreshold;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ConfidenceThresholdSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentThreshold != oldWidget.currentThreshold) {
+      _value = widget.currentThreshold;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final percentLabel = '${(_value * 100).round()}%';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Match Factor',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: () {
+                final next = ((_value * 100).round() - 1).clamp(0, 100);
+                setState(() => _value = next / 100);
+                widget.onChanged(_value);
+              },
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(36, 36),
+              ),
+              child: const Icon(Icons.remove),
+            ),
+            Expanded(
+              child: Slider(
+                value: _value,
+                min: 0,
+                max: 1,
+                divisions: 100,
+                label: percentLabel,
+                onChanged: (val) => setState(() => _value = val),
+                onChangeEnd: widget.onChanged,
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () {
+                final next = ((_value * 100).round() + 1).clamp(0, 100);
+                setState(() => _value = next / 100);
+                widget.onChanged(_value);
+              },
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(36, 36),
+              ),
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        Center(child: Text(percentLabel)),
+      ],
     );
   }
 }

@@ -182,10 +182,10 @@ class WorkflowEngine extends ChangeNotifier {
         final command = TaskCommand(
           name: 'Exist Check',
           referenceImagePath: _assetMap[n.assetId] ?? '',
-          profile: const TaskProfile(
+          profile: TaskProfile(
             mode: TaskMode.exist,
             standardAction: StandardAction.none,
-            confidenceThreshold: 0.8,
+            confidenceThreshold: n.confidenceThreshold,
             timeoutSeconds: 5,
           ),
         );

@@ -8,7 +8,8 @@ import 'package:macaque/features/workflow/services/archive_service.dart';
 import 'package:macaque/core/constants.dart';
 
 class WorkflowPersistence {
-  static const String exportedFileName = 'exported_workflow${AppConstants.workflowExtension}';
+  static const String exportedFileName =
+      'exported_workflow${AppConstants.workflowExtension}';
   final ArchiveService _archiveService = ArchiveService();
 
   Future<Directory> get localDirectory async {
@@ -67,8 +68,10 @@ class WorkflowPersistence {
   }) async {
     final tempDir = await getTemporaryDirectory();
     final jsonFile = File('${tempDir.path}/${workflow.id}.json');
+    await jsonFile.parent.create(recursive: true);
     await jsonFile.writeAsString(jsonEncode(workflow.toJson()));
 
+    await targetFile.parent.create(recursive: true);
     await _archiveService.bundleWorkflow(
       workflowFile: jsonFile,
       assets: assets,

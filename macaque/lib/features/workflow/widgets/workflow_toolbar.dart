@@ -137,17 +137,20 @@ class WorkflowToolbar extends StatelessWidget implements PreferredSizeWidget {
 
             final String? outputFile = await FilePicker.saveFile(
               dialogTitle: 'Export Workflow',
-              fileName: '${viewModel.workflowName}${AppConstants.workflowExtension}',
+              fileName: viewModel.workflowName,
               type: FileType.custom,
               allowedExtensions: [AppConstants.workflowExtensionName],
             );
 
             if (outputFile != null) {
-              await viewModel.exportWorkflow(File(outputFile));
+              final resolvedOutput = outputFile.endsWith(AppConstants.workflowExtension)
+                  ? outputFile
+                  : '$outputFile${AppConstants.workflowExtension}';
+              await viewModel.exportWorkflow(File(resolvedOutput));
 
               scaffoldMessenger.showSnackBar(
                 SnackBar(
-                  content: Text('Workflow exported to: $outputFile'),
+                  content: Text('Workflow exported to: $resolvedOutput'),
                   duration: const Duration(seconds: 3),
                 ),
               );

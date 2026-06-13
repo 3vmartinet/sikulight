@@ -45,11 +45,35 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "ui");
+    gtk_header_bar_set_title(header_bar, "Macaque");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "ui");
+    gtk_window_set_title(window, "Macaque");
+  }
+
+  // Set the window icon from the bundled flutter asset.
+  // Resolve the icon path relative to the running binary so it works
+  // regardless of the working directory the app is launched from.
+  {
+    g_autofree gchar* exe_path =
+        g_file_read_link("/proc/self/exe", nullptr);
+    g_autofree gchar* exe_dir =
+        exe_path ? g_path_get_dirname(exe_path) : g_strdup(".");
+    g_autofree gchar* icon_path = g_build_filename(
+        exe_dir,
+        "data",
+        "flutter_assets",
+        "assets",
+        "icons",
+        "macaque.png",
+        nullptr);
+    GError* icon_error = nullptr;
+    gtk_window_set_icon_from_file(window, icon_path, &icon_error);
+    if (icon_error) {
+      g_warning("Failed to load window icon: %s", icon_error->message);
+      g_error_free(icon_error);
+    }
   }
 
   gtk_window_set_default_size(window, 1280, 720);

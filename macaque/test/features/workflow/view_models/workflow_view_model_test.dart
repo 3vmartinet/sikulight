@@ -4,6 +4,8 @@ import 'package:mockito/mockito.dart';
 import 'package:macaque/features/workflow/view_models/workflow_view_model.dart';
 import 'package:macaque/features/workflow/models/workflow_models.dart'
     as models;
+import 'package:vyuh_node_flow/vyuh_node_flow.dart' as vnf;
+import 'package:flutter/painting.dart';
 
 // Reuse mocks from workspace_view_model_test
 import 'workspace_view_model_test.mocks.dart';
@@ -89,5 +91,35 @@ void main() {
     await viewModel.exportWorkflow();
 
     verify(mockPersistence.getExportFile(fileName: 'My Awesome Workflow.macaque')).called(1);
+  });
+
+  test('WorkflowViewModel should prevent deletion of StartNode but allow others', () async {
+    final viewModel = WorkflowViewModel(
+      engine: mockEngine,
+      persistence: mockPersistence,
+      apiClient: mockApiClient,
+      assetStorage: mockAssetStorage,
+    );
+
+    final onBeforeDelete = viewModel.controller.events.node?.onBeforeDelete;
+    expect(onBeforeDelete, isNotNull);
+
+    final startNode = vnf.Node<models.NodeData>(
+      id: 'start',
+      type: 'start',
+      position: Offset.zero,
+      data: models.StartNode(id: 'start', position: Offset.zero),
+    );
+    final preventDelete = await onBeforeDelete!(startNode);
+    expect(preventDelete, isFalse);
+
+    final waitNode = vnf.Node<models.NodeData>(
+      id: 'wait',
+      type: 'wait',
+      position: Offset.zero,
+      data: models.WaitNode(id: 'wait', position: Offset.zero, durationSeconds: 5),
+    );
+    final allowDelete = await onBeforeDelete(waitNode);
+    expect(allowDelete, isTrue);
   });
 }

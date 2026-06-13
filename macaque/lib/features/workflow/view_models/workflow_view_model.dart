@@ -82,9 +82,18 @@ class WorkflowViewModel extends ChangeNotifier {
 
   String get workflowName => _workflowName;
 
+  /// Returns [name] without the workflow file extension so that the stored
+  /// name is always extension-free regardless of how it was persisted.
+  String _sanitizedName(String name) {
+    if (name.endsWith(AppConstants.workflowExtension)) {
+      return name.substring(0, name.length - AppConstants.workflowExtension.length);
+    }
+    return name;
+  }
+
   void renameWorkflow(String newName) {
     if (newName.trim().isEmpty) return;
-    _workflowName = newName.trim();
+    _workflowName = _sanitizedName(newName.trim());
     _saveAutomatically();
     notifyListeners();
   }
@@ -112,7 +121,7 @@ class WorkflowViewModel extends ChangeNotifier {
       // Use a new ID for the imported workflow to avoid draft conflicts
       // but keep the name.
       _workflowId = const Uuid().v4();
-      _workflowName = workflow.name;
+      _workflowName = _sanitizedName(workflow.name);
       _filePath = file.path;
       unawaited(_resolvePath());
 
@@ -236,7 +245,7 @@ class WorkflowViewModel extends ChangeNotifier {
     final draft = await _persistence.loadDraft(_workflowId);
 
     if (draft != null) {
-      _workflowName = draft.name;
+      _workflowName = _sanitizedName(draft.name);
       _isModified = false;
 
       // Load nodes
@@ -383,6 +392,9 @@ class WorkflowViewModel extends ChangeNotifier {
       vnf.NodeFlowEvents(
         node: vnf.NodeEvents(
           onCreated: (_) => _onGraphChanged(),
+          onBeforeDelete: (node) async {
+            return node.data is! models.StartNode;
+          },
           onDeleted: (node) {
             if (node.data is models.StartNode) {
               // Re-add if it was deleted
@@ -749,6 +761,29 @@ class WorkflowViewModel extends ChangeNotifier {
       );
       notifyListeners();
     }
+  }
+
+  void updateExistNodeConfidenceThreshold(
+    String nodeId,
+    double confidenceThreshold,
+  ) {
+    final node = controller.getNode(nodeId);
+    if (node == null || node.data is! models.ExistNode) return;
+
+    final newData = (node.data as models.ExistNode).copyWith(
+      confidenceThreshold: confidenceThreshold,
+    );
+
+    controller.addNode(
+      vnf.Node<models.NodeData>(
+        id: node.id,
+        type: node.type,
+        position: node.position.value,
+        data: newData,
+        ports: node.ports.toList(),
+      ),
+    );
+    notifyListeners();
   }
 
   Future<void> exportWorkflow([File? target]) async {

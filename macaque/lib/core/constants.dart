@@ -13,4 +13,7 @@ class AppConstants {
   // Workflow file extensions
   static const String workflowExtension = '.macaque';
   static const String workflowExtensionName = 'macaque';
+
+  // Visual matching
+  static const double defaultConfidenceThreshold = 0.8;
 }

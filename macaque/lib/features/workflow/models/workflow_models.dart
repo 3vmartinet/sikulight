@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:macaque/core/constants.dart';
 import 'package:macaque/features/tasks/task_command.dart';
 
 class PortData extends Equatable {
@@ -109,6 +110,8 @@ sealed class NodeData extends Equatable {
           position: position,
           inputs: inputs,
           assetId: json['assetId'] as String,
+          confidenceThreshold: (json['confidenceThreshold'] as num?)?.toDouble()
+              ?? AppConstants.defaultConfidenceThreshold,
         );
       case 'branch':
         return BranchNode(
@@ -424,12 +427,14 @@ class WaitNode extends NodeData {
 
 class ExistNode extends NodeData {
   final String assetId;
+  final double confidenceThreshold;
 
   const ExistNode({
     required super.id,
     required super.position,
     super.inputs,
     required this.assetId,
+    this.confidenceThreshold = AppConstants.defaultConfidenceThreshold,
   });
 
   @override
@@ -437,21 +442,26 @@ class ExistNode extends NodeData {
     Offset? position,
     List<PortData>? inputs,
     String? assetId,
+    double? confidenceThreshold,
   }) => ExistNode(
     id: id,
     position: position ?? this.position,
     inputs: inputs ?? this.inputs,
     assetId: assetId ?? this.assetId,
+    confidenceThreshold: confidenceThreshold ?? this.confidenceThreshold,
   );
 
   @override
   String get type => 'exist';
 
   @override
-  Map<String, dynamic> extraToJson() => {'assetId': assetId};
+  Map<String, dynamic> extraToJson() => {
+    'assetId': assetId,
+    'confidenceThreshold': confidenceThreshold,
+  };
 
   @override
-  List<Object?> get props => [...super.props, assetId];
+  List<Object?> get props => [...super.props, assetId, confidenceThreshold];
 }
 
 class ConnectionData extends Equatable {

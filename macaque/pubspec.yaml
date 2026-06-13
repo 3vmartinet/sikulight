@@ -30,7 +30,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_launcher_icons: ^0.14.4
+  icons_launcher: ^3.1.0
   flutter_lints: ^6.0.0
   mockito: ^5.6.4
   build_runner: ^2.15.0
@@ -38,8 +38,16 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-# dart run flutter_launcher_icons
-flutter_launcher_icons:
-  macos:
-    generate: true
-    image_path: "assets/icons/macaque.png"
+  assets:
+    - assets/icons/
+
+# dart run icons_launcher:create
+icons_launcher:
+  image_path: "assets/icons/macaque.png"
+  platforms:
+    macos:
+      enable: true
+    linux:
+      enable: true
+    windows:
+      enable: true
