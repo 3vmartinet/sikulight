@@ -125,9 +125,9 @@ static gboolean my_application_local_command_line(GApplication* application,
 
 // Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
+  // Sets the human-readable name shown in the Alt+Tab switcher and taskbars,
+  // independently of the reverse-DNS application ID.
+  g_set_application_name("Macaque");
 
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
